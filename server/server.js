@@ -3,6 +3,13 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+// В начале server.js после импортов добавь:
+const allowedOrigins = [
+    'https://vk.com',
+    'https://vk.ru',
+    'https://localhost:3000',
+    'https://your-app.vercel.app' // твой домен с Vercel
+];
 
 // HTTP сервер для раздачи статики
 const server = http.createServer((req, res) => {

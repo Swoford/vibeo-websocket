@@ -421,6 +421,12 @@
     transition: all 0.3s ease;
 }
     </style>
+<!-- Добавь перед закрывающим </head> -->
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script>
+  // Инициализация VK Bridge
+  vkBridge.send('VKWebAppInit', {});
+</script>
 </head>
 
 <body class="h-screen flex flex-col bg-[#0b1120] no-select">
@@ -1799,20 +1805,53 @@ handleMessageDeleted: (message) => {
             return null;
         },
 
-        loadVKVideo: (videoId) => {
-            const demoVideos = {
-                '-205631275_456239152': 'jfKfPfyJRdk', // Lofi music
-                '-123456_789': 'dQw4w9WgXcQ', // Rickroll
-                '-987654_321': '5qap5aO4i9A'  // Lofi girl
-            };
+        loadVKVideo: async (videoId) => {
+    try {
+        // Для VK Mini Apps используем VK Bridge
+        if (window.vkBridge) {
+            const response = await vkBridge.send('VKWebAppCallAPIMethod', {
+                method: 'video.get',
+                params: {
+                    videos: videoId,
+                    access_token: 'ТВОЙ_ТОКЕН', // получишь в VK Dev
+                    v: '5.131'
+                }
+            });
             
-            const youtubeId = demoVideos[videoId] || 'jfKfPfyJRdk';
-            return {
-                id: youtubeId,
-                title: 'VK видео (демо)',
-                type: 'youtube'
-            };
+            if (response.response && response.response.items[0]) {
+                const video = response.response.items[0];
+                return {
+                    id: video.player,
+                    title: video.title,
+                    type: 'vk'
+                };
+            }
         }
+        
+        // Fallback на YouTube (как сейчас)
+        const demoVideos = {
+            '-205631275_456239152': 'jfKfPfyJRdk',
+            '-123456_789': 'dQw4w9WgXcQ',
+            '-987654_321': '5qap5aO4i9A'
+        };
+        
+        const youtubeId = demoVideos[videoId] || 'jfKfPfyJRdk';
+        return {
+            id: youtubeId,
+            title: 'VK видео',
+            type: 'youtube'
+        };
+        
+    } catch (error) {
+        console.error('VK Video API error:', error);
+        // Fallback на YouTube
+        return {
+            id: 'jfKfPfyJRdk',
+            title: 'VK видео (демо)',
+            type: 'youtube'
+        };
+    }
+},
     };
 
     /* ==========================================================================
