@@ -8,8 +8,14 @@ const allowedOrigins = [
     'https://vk.com',
     'https://vk.ru',
     'https://localhost:3000',
-    'https://your-app.vercel.app' // твой домен с Vercel
+    'https://vibeo-websocket.vercel.app/' // твой домен с Vercel
 ];
+// Разрешаем CORS для всех доменов (для продакшена)
+server.on('request', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+});
 
 // HTTP сервер для раздачи статики
 const server = http.createServer((req, res) => {

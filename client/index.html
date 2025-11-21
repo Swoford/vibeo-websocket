@@ -718,7 +718,10 @@
         reconnectDelay: 1000,
 
         connect: (roomCode, userId) => {
-            const wsUrl = `ws://localhost:3000?room=${roomCode}&userId=${userId}`;
+            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = isProduction ? window.location.host : 'localhost:3000';
+    const wsUrl = `${protocol}//${wsHost}?room=${roomCode}&userId=${userId}`;
             WSClient.ws = new WebSocket(wsUrl);
 
             WSClient.ws.onopen = () => {
@@ -897,54 +900,60 @@
         },
 
         connectWebSocket: (roomCode) => {
-            UI.toast('🔄 Подключаемся к серверу...', 'info');
-            UI.updateConnectionStatus('connecting');
+    UI.toast('🔄 Подключаемся к серверу...', 'info');
+    UI.updateConnectionStatus('connecting');
+    
+    try {
+        // Автоматически определяем URL для WebSocket
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = isProduction ? window.location.host : 'localhost:3000';
+        const wsUrl = `${protocol}//${wsHost}?room=${roomCode || ''}&userId=${State.user.id}`;
+        
+        console.log('🔗 Подключаемся к:', wsUrl);
+        WSClient.ws = new WebSocket(wsUrl);
+
+        WSClient.ws.onopen = () => {
+            console.log('✅ WebSocket подключен!');
+            UI.toast('✅ Подключено к серверу', 'success');
+            UI.updateConnectionStatus('connected');
             
-            try {
-                const wsUrl = `ws://localhost:3000?room=${roomCode || ''}&userId=${State.user.id}`;
-                WSClient.ws = new WebSocket(wsUrl);
-
-                WSClient.ws.onopen = () => {
-                    console.log('✅ WebSocket подключен!');
-                    UI.toast('✅ Подключено к серверу', 'success');
-                    UI.updateConnectionStatus('connected');
-                    
-                    if (roomCode) {
-                        WSClient.ws.send(JSON.stringify({
-                            type: 'JOIN_ROOM',
-                            roomCode: roomCode,
-                            user: State.user
-                        }));
-                    } else {
-                        WSClient.ws.send(JSON.stringify({
-                            type: 'CREATE_ROOM', 
-                            user: State.user
-                        }));
-                    }
-                };
-
-                WSClient.ws.onmessage = (event) => {
-                    const message = JSON.parse(event.data);
-                    console.log('📨 Получено:', message);
-                    WSClient.handleMessage(message);
-                };
-
-                WSClient.ws.onerror = (error) => {
-                    console.error('❌ WebSocket ошибка:', error);
-                    UI.toast('❌ Ошибка подключения к серверу', 'error');
-                    UI.updateConnectionStatus('disconnected');
-                };
-
-                WSClient.ws.onclose = () => {
-                    console.log('🔌 WebSocket отключен');
-                    UI.updateConnectionStatus('disconnected');
-                };
-                
-            } catch (error) {
-                UI.toast('❌ Ошибка: ' + error.message, 'error');
-                UI.updateConnectionStatus('disconnected');
+            if (roomCode) {
+                WSClient.ws.send(JSON.stringify({
+                    type: 'JOIN_ROOM',
+                    roomCode: roomCode,
+                    user: State.user
+                }));
+            } else {
+                WSClient.ws.send(JSON.stringify({
+                    type: 'CREATE_ROOM', 
+                    user: State.user
+                }));
             }
-        },
+        };
+
+        WSClient.ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            console.log('📨 Получено:', message);
+            WSClient.handleMessage(message);
+        };
+
+        WSClient.ws.onerror = (error) => {
+            console.error('❌ WebSocket ошибка:', error);
+            UI.toast('❌ Ошибка подключения к серверу', 'error');
+            UI.updateConnectionStatus('disconnected');
+        };
+
+        WSClient.ws.onclose = () => {
+            console.log('🔌 WebSocket отключен');
+            UI.updateConnectionStatus('disconnected');
+        };
+        
+    } catch (error) {
+        UI.toast('❌ Ошибка: ' + error.message, 'error');
+        UI.updateConnectionStatus('disconnected');
+    }
+},
 
         handleRoomState: (message) => {
             State.room = message.room;
@@ -1312,7 +1321,7 @@ onSeekChange: (val) => {
             btn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play ml-1"></i>';
         },
 
-        startProgressLoop: () => {
+      startProgressLoop: () => {
     if (progressInterval) clearInterval(progressInterval);
     
     progressInterval = setInterval(() => {
