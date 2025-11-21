@@ -1,18 +1,16 @@
 {
   "name": "vibeo-websocket",
   "version": "1.0.0",
-  "description": "",
+  "description": "Совместный просмотр видео с друзьями",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "static": "node server/static-server.js",
-    "dev": "concurrently \"node server/static-server.js\" \"node server/server.js\""
+    "dev": "node server/server.js"
   },
   "dependencies": {
-    "ws": "^8.14.2",
-    "uuid": "^9.0.1"
+    "ws": "^8.14.2"
   },
-  "devDependencies": {
-    "concurrently": "^7.6.0"
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
