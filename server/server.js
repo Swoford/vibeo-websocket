@@ -8,8 +8,8 @@ const path = require('path');
 const server = http.createServer((req, res) => {
     console.log(`📄 HTTP запрос: ${req.method} ${req.url}`);
     
-    // Обслуживаем корневой путь
-    if (req.url === '/' || req.url === '/health') {
+    // Healthcheck для Railway
+    if (req.url === '/health') {
         res.writeHead(200, { 
             'Content-Type': 'text/plain',
             'Access-Control-Allow-Origin': '*'
@@ -18,30 +18,20 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // Обслуживаем index.html
-    if (req.url === '/index.html') {
-        const filePath = path.join(__dirname, '../client/index.html');
-        fs.readFile(filePath, (err, data) => {
-            if (err) {
-                res.writeHead(404);
-                res.end('Not found');
-                return;
-            }
-            res.writeHead(200, {
-                'Content-Type': 'text/html',
-                'Cache-Control': 'no-cache'
-            });
-            res.end(data);
+    // Обслуживаем index.html для всех остальных запросов
+    const filePath = path.join(__dirname, '../client/index.html');
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+        }
+        res.writeHead(200, {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache'
         });
-        return;
-    }
-    
-    // Для всех остальных запросов
-    res.writeHead(200, { 
-        'Content-Type': 'text/plain',
-        'Access-Control-Allow-Origin': '*'
+        res.end(data);
     });
-    res.end('OK');
 });
 
 // WebSocket сервер
