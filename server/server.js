@@ -36,8 +36,7 @@ const server = http.createServer((req, res) => {
 
 // WebSocket сервер
 const wss = new WebSocket.Server({ 
-    server,
-    path: '/ws'
+    server
 });
 
 const rooms = new Map();
