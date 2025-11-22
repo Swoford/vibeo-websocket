@@ -14,6 +14,12 @@ const allowedOrigins = [
 // HTTP сервер для раздачи статики
 const server = http.createServer((req, res) => {
     console.log(`📄 HTTP запрос: ${req.method} ${req.url}`);
+        // Healthcheck для Railway - ОБЯЗАТЕЛЬНО!
+    if (req.url === '/health' || req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', message: 'Vibeo server is running' }));
+        return;
+    }
     
     // Обслуживаем index.html из папки client
     if (req.url === '/' || req.url === '/index.html') {
