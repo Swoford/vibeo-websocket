@@ -3,53 +3,52 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
-// В начале server.js после импортов добавь:
-const allowedOrigins = [
-    'https://vk.com',
-    'https://vk.ru',
-    'https://localhost:3000',
-    'https://vibeo-websocket.vercel.app/' // твой домен с Vercel
-];
 
-// HTTP сервер для раздачи статики
+// Создаем HTTP сервер
 const server = http.createServer((req, res) => {
     console.log(`📄 HTTP запрос: ${req.method} ${req.url}`);
-        // Healthcheck для Railway - ОБЯЗАТЕЛЬНО!
-    if (req.url === '/health' || req.url === '/') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok', message: 'Vibeo server is running' }));
+    
+    // Обслуживаем корневой путь
+    if (req.url === '/' || req.url === '/health') {
+        res.writeHead(200, { 
+            'Content-Type': 'text/plain',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end('Vibeo Server is Running!');
         return;
     }
     
-    // Обслуживаем index.html из папки client
-    if (req.url === '/' || req.url === '/index.html') {
+    // Обслуживаем index.html
+    if (req.url === '/index.html') {
         const filePath = path.join(__dirname, '../client/index.html');
-        
         fs.readFile(filePath, (err, data) => {
             if (err) {
-                console.error('❌ Ошибка чтения файла:', err);
                 res.writeHead(404);
-                res.end('File not found');
+                res.end('Not found');
                 return;
             }
-            
             res.writeHead(200, {
                 'Content-Type': 'text/html',
                 'Cache-Control': 'no-cache'
             });
             res.end(data);
-            console.log('✅ index.html отправлен клиенту');
         });
         return;
     }
     
-    // Для других файлов возвращаем 404
-    res.writeHead(404);
-    res.end('Not found');
+    // Для всех остальных запросов
+    res.writeHead(200, { 
+        'Content-Type': 'text/plain',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.end('OK');
 });
 
 // WebSocket сервер
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ 
+    server,
+    path: '/ws'
+});
 
 const rooms = new Map();
 
@@ -91,7 +90,6 @@ class Room {
         if (user) {
             this.users.delete(userId);
             
-            // Если вышел хост, передаем права следующему пользователю
             if (userId === this.hostId && this.users.size > 0) {
                 const newHost = this.users.values().next().value;
                 this.hostId = newHost.id;
@@ -135,7 +133,7 @@ class Room {
     updatePlayback(state, userId) {
         const user = this.users.get(userId);
         if (!user || !user.isHost) {
-            return false; // Только хост может управлять воспроизведением
+            return false;
         }
         
         this.playbackState = state;
@@ -199,10 +197,7 @@ class Room {
             return false;
         }
         
-        // Снимаем права с текущего хоста
         currentUser.isHost = false;
-        
-        // Назначаем нового хоста
         this.hostId = newHostId;
         newHost.isHost = true;
         
@@ -215,6 +210,28 @@ class Room {
         
         console.log(`👑 Права хоста переданы от ${currentUser.name} к ${newHost.name}`);
         return true;
+    }
+
+    deleteMessage(messageId, userId) {
+        const message = this.chatMessages.get(messageId);
+        if (!message) return false;
+        
+        const user = this.users.get(userId);
+        
+        if (message.userId === userId || (user && user.isHost)) {
+            this.chatMessages.delete(messageId);
+            
+            this.broadcast({
+                type: 'MESSAGE_DELETED',
+                messageId: messageId,
+                deletedBy: userId,
+                isHost: user.isHost
+            });
+            
+            return true;
+        }
+        
+        return false;
     }
     
     getUsersList() {
@@ -232,28 +249,6 @@ class Room {
             }
         });
     }
-    deleteMessage(messageId, userId) {
-    const message = this.chatMessages.get(messageId);
-    if (!message) return false;
-    
-    const user = this.users.get(userId);
-    
-    // Проверяем права: либо свое сообщение, либо хост
-    if (message.userId === userId || (user && user.isHost)) {
-        this.chatMessages.delete(messageId);
-        
-        this.broadcast({
-            type: 'MESSAGE_DELETED',
-            messageId: messageId,
-            deletedBy: userId,
-            isHost: user.isHost
-        });
-        
-        return true;
-    }
-    
-    return false;
-}
 }
 
 function generateRoomCode() {
@@ -378,6 +373,15 @@ wss.on('connection', (ws, request) => {
                     }
                 }
                 break;
+
+            case 'DELETE_MESSAGE':
+                if (currentRoom && message.messageId) {
+                    const success = currentRoom.deleteMessage(message.messageId, currentUser.id);
+                    if (!success) {
+                        sendError(ws, 'NO_PERMISSION_TO_DELETE');
+                    }
+                }
+                break;
                 
             case 'SYNC_REQUEST':
                 if (currentRoom) {
@@ -391,14 +395,6 @@ wss.on('connection', (ws, request) => {
                     }));
                 }
                 break;
-            case 'DELETE_MESSAGE':
-    if (currentRoom && message.messageId) {
-        const success = currentRoom.deleteMessage(message.messageId, currentUser.id);
-        if (!success) {
-            sendError(ws, 'NO_PERMISSION_TO_DELETE');
-        }
-    }
-    break;
         }
     }
 
@@ -443,17 +439,11 @@ wss.on('connection', (ws, request) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 HTTP + WebSocket сервер запущен на порту ${PORT}`);
-    console.log(`🌐 Откройте: http://localhost:${PORT}`);
-    console.log(`📡 WebSocket: ws://localhost:${PORT}`);
-    console.log(`📁 Структура проекта:`);
-    console.log(`   vibeo-websocket/`);
-    console.log(`   ├── client/`);
-    console.log(`   │   └── index.html ✅`);
-    console.log(`   └── server/`);
-    console.log(`       └── server.js ✅`);
+    console.log(`🌐 Healthcheck: http://0.0.0.0:${PORT}/health`);
+    console.log(`📡 WebSocket: ws://0.0.0.0:${PORT}/ws`);
 });
 
 process.on('SIGINT', () => {
@@ -464,4 +454,13 @@ process.on('SIGINT', () => {
             process.exit(0);
         });
     });
+});
+
+// Обработка ошибок
+server.on('error', (error) => {
+    console.error('❌ Ошибка сервера:', error);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('❌ Необработанная ошибка:', error);
 });
