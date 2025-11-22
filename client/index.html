@@ -427,6 +427,10 @@
   // Инициализация VK Bridge
   vkBridge.send('VKWebAppInit', {});
 </script>
+<script>
+// Временный фикс для Railway
+window.railwayUrl = 'https://vibeo-websocket-production.up.railway.app/';
+</script>
 </head>
 
 <body class="h-screen flex flex-col bg-[#0b1120] no-select">
@@ -721,8 +725,7 @@
     const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = isProduction ? window.location.host : 'localhost:3000';
-    // ДОБАВЬ ПУТЬ /ws
-    const wsUrl = `${protocol}//${wsHost}/ws?room=${roomCode}&userId=${userId}`;
+    const wsUrl = `${protocol}//${window.railwayUrl || wsHost}/ws?room=${roomCode}&userId=${State.user.id}`;
     
     WSClient.ws = new WebSocket(wsUrl);
 
