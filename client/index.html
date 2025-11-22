@@ -718,11 +718,13 @@
         reconnectDelay: 1000,
 
         connect: (roomCode, userId) => {
-            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = isProduction ? window.location.host : 'localhost:3000';
-    const wsUrl = `${protocol}//${wsHost}?room=${roomCode}&userId=${userId}`;
-            WSClient.ws = new WebSocket(wsUrl);
+    // ДОБАВЬ ПУТЬ /ws
+    const wsUrl = `${protocol}//${wsHost}/ws?room=${roomCode}&userId=${userId}`;
+    
+    WSClient.ws = new WebSocket(wsUrl);
 
             WSClient.ws.onopen = () => {
                 console.log('WebSocket connected');
@@ -908,11 +910,12 @@
         const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = isProduction ? window.location.host : 'localhost:3000';
-        const wsUrl = `${protocol}//${wsHost}?room=${roomCode || ''}&userId=${State.user.id}`;
+        // ДОБАВЬ ПУТЬ /ws К URL
+        const wsUrl = `${protocol}//${wsHost}/ws?room=${roomCode || ''}&userId=${State.user.id}`;
         
         console.log('🔗 Подключаемся к:', wsUrl);
         WSClient.ws = new WebSocket(wsUrl);
-
+        // ... остальной код без изменений
         WSClient.ws.onopen = () => {
             console.log('✅ WebSocket подключен!');
             UI.toast('✅ Подключено к серверу', 'success');
