@@ -18,25 +18,34 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // Обслуживаем index.html для всех остальных запросов
-    const filePath = path.join(__dirname, '../client/index.html');
-    fs.readFile(filePath, (err, data) => {
-        if (err) {
-            res.writeHead(404);
-            res.end('Not found');
-            return;
-        }
-        res.writeHead(200, {
-            'Content-Type': 'text/html',
-            'Cache-Control': 'no-cache'
+    // Обслуживаем index.html для всех маршрутов
+    if (req.url === '/' || req.url === '/index.html') {
+        const filePath = path.join(__dirname, '../client/index.html');
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                console.error('❌ Ошибка чтения index.html:', err);
+                res.writeHead(404);
+                res.end('Not found');
+                return;
+            }
+            res.writeHead(200, {
+                'Content-Type': 'text/html',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(data);
         });
-        res.end(data);
-    });
+        return;
+    }
+    
+    // Для всех остальных запросов - 404
+    res.writeHead(404);
+    res.end('Not found');
 });
 
-// WebSocket сервер
+// WebSocket сервер (остальной код без изменений)
 const wss = new WebSocket.Server({ 
-    server
+    server,
+    path: '/ws' // Явно указываем путь
 });
 
 const rooms = new Map();
@@ -303,6 +312,10 @@ wss.on('connection', (ws, request) => {
             console.log(`Пользователь ${currentUser.name} вышел из комнаты ${currentRoom.code}`);
             currentRoom.removeUser(currentUser.id);
         }
+    });
+
+    ws.on('error', (error) => {
+        console.error(`❌ WebSocket ошибка для пользователя ${userId}:`, error);
     });
 
     function handleMessage(message, ws) {
