@@ -427,10 +427,6 @@
   // Инициализация VK Bridge
   vkBridge.send('VKWebAppInit', {});
 </script>
-<script>
-// Временный фикс для Railway
-window.railwayUrl = 'https://vibeo-websocket-production.up.railway.app/';
-</script>
 </head>
 
 <body class="h-screen flex flex-col bg-[#0b1120] no-select">
@@ -712,1219 +708,1261 @@ window.railwayUrl = 'https://vibeo-websocket-production.up.railway.app/';
 <script src="https://www.youtube.com/iframe_api"></script>
 
 <script>
-    /* ==========================================================================
-       WEBSOCKET CLIENT
-       ========================================================================== */
-    const WSClient = {
-        ws: null,
-        reconnectAttempts: 0,
-        maxReconnectAttempts: 5,
-        reconnectDelay: 1000,
+// ==========================================================================
+// ФИКС ДЛЯ RAILWAY - ИНИЦИАЛИЗАЦИЯ ГЛОБАЛЬНЫХ ОБЪЕКТОВ
+// ==========================================================================
+window.State = {
+    user: null,
+    room: null,
+    users: [],
+    video: null,
+    playbackState: { playing: false, time: 0 },
+    isHost: false
+};
 
-        connect: (roomCode, userId) => {
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = isProduction ? window.location.host : 'localhost:3000';
-    const wsUrl = `${protocol}//${window.railwayUrl || wsHost}/ws?room=${roomCode}&userId=${State.user.id}`;
-    
-    WSClient.ws = new WebSocket(wsUrl);
+window.App = {
+    joinRoom: function() {
+        console.log('App.joinRoom вызван - объекты загружаются...');
+    }
+};
 
-            WSClient.ws.onopen = () => {
-                console.log('WebSocket connected');
-                WSClient.reconnectAttempts = 0;
-                UI.updateConnectionStatus('connected');
-                UI.toast('Подключено к комнате', 'success');
-            };
+window.Player = {};
+window.Chat = {};
+window.VideoLoader = {};
+window.Users = {};
+window.UI = {};
+window.WSClient = {};
 
-            WSClient.ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                WSClient.handleMessage(message);
-            };
+console.log('✅ Глобальные объекты инициализированы');
+</script>
 
-            WSClient.ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                UI.updateConnectionStatus('disconnected');
-                
-                if (WSClient.reconnectAttempts < WSClient.maxReconnectAttempts) {
-                    setTimeout(() => {
-                        WSClient.reconnectAttempts++;
-                        WSClient.connect(roomCode, userId);
-                    }, WSClient.reconnectDelay * WSClient.reconnectAttempts);
-                }
-            };
+<script>
+// ==========================================================================
+// ОСНОВНОЙ КОД VIBEO С ВСЕМИ ФИШКАМИ
+// ==========================================================================
 
-            WSClient.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                UI.updateConnectionStatus('disconnected');
-            };
-        },
+/* ==========================================================================
+   WEBSOCKET CLIENT
+   ========================================================================== */
+const WSClient = {
+    ws: null,
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+    reconnectDelay: 1000,
 
-        handleMessage: (message) => {
-            console.log('📨 Получено сообщение:', message.type, message);
-            
-            switch (message.type) {
-                case 'CONNECTED':
-                    break;
-                case 'ROOM_STATE':
-                    App.handleRoomState(message);
-                    break;
-                case 'USER_JOINED':
-                    Users.handleUserJoined(message);
-                    break;
-                case 'USER_LEFT':
-                    Users.handleUserLeft(message);
-                    break;
-                case 'VIDEO_CHANGED':
-                    Player.handleVideoChanged(message);
-                    break;
-                case 'PLAYBACK_SYNC':
-                    Player.handlePlaybackSync(message);
-                    break;
-                case 'CHAT_MESSAGE':
-                    Chat.handleChatMessage(message);
-                    break;
-                case 'REACTION_UPDATE':
-                    Chat.handleReactionUpdate(message);
-                    break;
-                case 'HOST_CHANGED':
-                    Users.handleHostChanged(message);
-                    break;
-                case 'ROOM_SYNC':
-                    App.handleRoomSync(message);
-                    break;
-                case 'ERROR':
-                    UI.toast(`Ошибка: ${message.error}`, 'error');
-                    break;
-                case 'MESSAGE_DELETED':
-    Chat.handleMessageDeleted(message);
-    break;
-            }
-        },
-
-        send: (message) => {
-            if (WSClient.ws && WSClient.ws.readyState === WebSocket.OPEN) {
-                WSClient.ws.send(JSON.stringify(message));
-            } else {
-                console.warn('WebSocket not connected');
-            }
-        },
-
-        createRoom: (user) => {
-            WSClient.send({
-                type: 'CREATE_ROOM',
-                user: user
-            });
-        },
-
-        joinRoom: (roomCode, user) => {
-            WSClient.send({
-                type: 'JOIN_ROOM',
-                roomCode: roomCode,
-                user: user
-            });
-        },
-
-        changeVideo: (video) => {
-            WSClient.send({
-                type: 'CHANGE_VIDEO',
-                video: video
-            });
-        },
-
-        updatePlayback: (state) => {
-            WSClient.send({
-                type: 'PLAYBACK_UPDATE',
-                state: state
-            });
-        },
-
-        sendChatMessage: (text) => {
-            WSClient.send({
-                type: 'CHAT_MESSAGE',
-                text: text
-            });
-        },
-
-        toggleReaction: (messageId, reaction, userId) => {
-            WSClient.send({
-                type: 'TOGGLE_REACTION',
-                messageId: messageId,
-                reaction: reaction,
-                userId: userId
-            });
-        },
-
-        transferHost: (newHostId) => {
-            WSClient.send({
-                type: 'TRANSFER_HOST',
-                newHostId: newHostId
-            });
-        },
-
-        requestSync: () => {
-            WSClient.send({
-                type: 'SYNC_REQUEST'
-            });
-        }
-    };
-
-    /* ==========================================================================
-       STATE MANAGEMENT
-       ========================================================================== */
-    const State = {
-        user: null,
-        room: null,
-        users: [],
-        video: null,
-        playbackState: { playing: false, time: 0 },
-        isHost: false
-    };
-
-    /* ==========================================================================
-       APP CORE
-       ========================================================================== */
-    const App = {
-        joinRoom: () => {
-            const nameInput = document.getElementById('username-input');
-            const roomCodeInput = document.getElementById('room-code-input');
-            
-            const name = nameInput.value.trim();
-            const roomCode = roomCodeInput.value.trim().toUpperCase();
-
-            if (!name) {
-                UI.toast('Введите ваше имя', 'error');
-                return;
-            }
-
-            State.user = {
-                id: Math.random().toString(36).substr(2, 9),
-                name: name
-            };
-
-            App.connectWebSocket(roomCode);
-        },
-
-        connectWebSocket: (roomCode) => {
-    UI.toast('🔄 Подключаемся к серверу...', 'info');
-    UI.updateConnectionStatus('connecting');
-    
-    try {
+    connect: (roomCode, userId) => {
         const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = isProduction ? window.location.host : 'localhost:3000';
-        // ВЕРНИ СТАРЫЙ URL БЕЗ /ws
-        const wsUrl = `${protocol}//${wsHost}?room=${roomCode || ''}&userId=${State.user.id}`;
+        const wsUrl = `${protocol}//${wsHost}/ws?room=${roomCode}&userId=${userId}`;
         
-        console.log('🔗 Подключаемся к:', wsUrl);
         WSClient.ws = new WebSocket(wsUrl);
+
         WSClient.ws.onopen = () => {
-            console.log('✅ WebSocket подключен!');
-            UI.toast('✅ Подключено к серверу', 'success');
+            console.log('WebSocket connected');
+            WSClient.reconnectAttempts = 0;
             UI.updateConnectionStatus('connected');
-            
-            if (roomCode) {
-                WSClient.ws.send(JSON.stringify({
-                    type: 'JOIN_ROOM',
-                    roomCode: roomCode,
-                    user: State.user
-                }));
-            } else {
-                WSClient.ws.send(JSON.stringify({
-                    type: 'CREATE_ROOM', 
-                    user: State.user
-                }));
-            }
+            UI.toast('Подключено к комнате', 'success');
         };
 
         WSClient.ws.onmessage = (event) => {
             const message = JSON.parse(event.data);
-            console.log('📨 Получено:', message);
             WSClient.handleMessage(message);
         };
 
-        WSClient.ws.onerror = (error) => {
-            console.error('❌ WebSocket ошибка:', error);
-            UI.toast('❌ Ошибка подключения к серверу', 'error');
-            UI.updateConnectionStatus('disconnected');
-        };
-
         WSClient.ws.onclose = () => {
-            console.log('🔌 WebSocket отключен');
+            console.log('WebSocket disconnected');
+            UI.updateConnectionStatus('disconnected');
+            
+            if (WSClient.reconnectAttempts < WSClient.maxReconnectAttempts) {
+                setTimeout(() => {
+                    WSClient.reconnectAttempts++;
+                    WSClient.connect(roomCode, userId);
+                }, WSClient.reconnectDelay * WSClient.reconnectAttempts);
+            }
+        };
+
+        WSClient.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
             UI.updateConnectionStatus('disconnected');
         };
+    },
+
+    handleMessage: (message) => {
+        console.log('📨 Получено сообщение:', message.type, message);
         
-    } catch (error) {
-        UI.toast('❌ Ошибка: ' + error.message, 'error');
-        UI.updateConnectionStatus('disconnected');
-    }
-},
-
-        handleRoomState: (message) => {
-            State.room = message.room;
-            State.video = message.video;
-            State.playbackState = message.playbackState;
-            State.users = message.users;
-            State.isHost = message.isHost;
-            
-            App.showMainInterface();
-            
-            if (State.video) {
-                Player.loadVideo(State.video.id, State.video.title, false);
-            }
-            
-            if (message.chatMessages) {
-                message.chatMessages.forEach(msg => {
-                    Chat.handleChatMessage({ message: msg });
-                });
-            }
-            
-            UI.toast(`✅ Подключено к комнате ${State.room}`, 'success');
-            Chat.addSystemMessage(`🎉 Добро пожаловать в комнату ${State.room}!`);
-            
-            if (State.isHost) {
-                Chat.addSystemMessage('Вы создатель комнаты. Добавьте видео чтобы начать просмотр!');
-            } else {
-                Chat.addSystemMessage('Вы участник комнаты. Ожидайте когда создатель включит видео.');
-            }
-        },
-
-        handleRoomSync: (message) => {
-            State.video = message.video;
-            State.playbackState = message.playbackState;
-            State.users = message.users;
-            State.isHost = message.isHost;
-            Users.render();
-            
-            if (State.video) {
-                Player.loadVideo(State.video.id, State.video.title, false);
-            }
-        },
-
-        showMainInterface: () => {
-    document.getElementById('view-auth').classList.add('hidden');
-    document.getElementById('view-app').classList.remove('hidden');
-    
-    document.getElementById('current-user-name').textContent = State.user.name;
-    document.getElementById('room-code').textContent = State.room;
-    
-    // Обновляем классы ползунка в зависимости от прав
-    const slider = document.getElementById('seek-slider');
-    if (State.isHost) {
-        slider.classList.add('host-slider');
-        slider.classList.remove('participant-slider');
-    } else {
-        slider.classList.add('participant-slider');
-        slider.classList.remove('host-slider');
-    }
-    
-    Player.init();
-    Users.render();
-},
-
-        leaveRoom: () => {
-            if (confirm('Покинуть комнату?')) {
-                if (WSClient.ws) {
-                    WSClient.ws.close();
-                }
-                location.reload();
-            }
-        },
-
-        switchTab: (tab) => {
-            ['chat', 'search', 'users'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`tab-${t}-btn`).classList.remove('text-blue-500', 'border-b-2', 'border-blue-500', 'bg-slate-800/30');
-            });
-            
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`tab-${tab}-btn`).classList.add('text-blue-500', 'border-b-2', 'border-blue-500', 'bg-slate-800/30');
-        },
-
-        toggleSidebar: () => {
-            document.getElementById('sidebar').classList.toggle('translate-x-full');
-        },
-
-        focusSearch: () => {
-            App.switchTab('search');
-            setTimeout(() => document.getElementById('video-url-input').focus(), 100);
-        },
-
-        copyRoomCode: () => {
-            navigator.clipboard.writeText(State.room);
-            UI.toast('Код комнаты скопирован! Поделитесь с друзьями.', 'success');
+        switch (message.type) {
+            case 'CONNECTED':
+                break;
+            case 'ROOM_STATE':
+                App.handleRoomState(message);
+                break;
+            case 'USER_JOINED':
+                Users.handleUserJoined(message);
+                break;
+            case 'USER_LEFT':
+                Users.handleUserLeft(message);
+                break;
+            case 'VIDEO_CHANGED':
+                Player.handleVideoChanged(message);
+                break;
+            case 'PLAYBACK_SYNC':
+                Player.handlePlaybackSync(message);
+                break;
+            case 'CHAT_MESSAGE':
+                Chat.handleChatMessage(message);
+                break;
+            case 'REACTION_UPDATE':
+                Chat.handleReactionUpdate(message);
+                break;
+            case 'HOST_CHANGED':
+                Users.handleHostChanged(message);
+                break;
+            case 'ROOM_SYNC':
+                App.handleRoomSync(message);
+                break;
+            case 'ERROR':
+                UI.toast(`Ошибка: ${message.error}`, 'error');
+                break;
+            case 'MESSAGE_DELETED':
+                Chat.handleMessageDeleted(message);
+                break;
         }
-    };
+    },
 
-    /* ==========================================================================
-       PLAYER CONTROLLER
-       ========================================================================== */
-    let ytPlayer = null;
-    let progressInterval = null;
-    let lastPlaybackUpdate = 0;
+    send: (message) => {
+        if (WSClient.ws && WSClient.ws.readyState === WebSocket.OPEN) {
+            WSClient.ws.send(JSON.stringify(message));
+        } else {
+            console.warn('WebSocket not connected');
+        }
+    },
 
-    const Player = {
-        init: () => {
-            if (window.YT && window.YT.Player) {
-                Player.createPlayer();
-            } else {
-                window.onYouTubeIframeAPIReady = Player.createPlayer;
-            }
-        },
+    createRoom: (user) => {
+        WSClient.send({
+            type: 'CREATE_ROOM',
+            user: user
+        });
+    },
 
-        createPlayer: () => {
-            ytPlayer = new YT.Player('yt-player', {
-                height: '100%',
-                width: '100%',
-                videoId: '',
-                playerVars: {
-                    'playsinline': 1,
-                    'controls': 0,
-                    'disablekb': 1,
-                    'rel': 0,
-                    'modestbranding': 1,
-                    'enablejsapi': 1
-                },
-                events: {
-                    'onReady': Player.onReady,
-                    'onStateChange': Player.onStateChange,
-                    'onError': Player.onError
-                }
-            });
-        },
+    joinRoom: (roomCode, user) => {
+        WSClient.send({
+            type: 'JOIN_ROOM',
+            roomCode: roomCode,
+            user: user
+        });
+    },
 
-        onReady: () => {
-    console.log('Player ready');
-    Player.showControls();
-    Player.initVolume();
-},
+    changeVideo: (video) => {
+        WSClient.send({
+            type: 'CHANGE_VIDEO',
+            video: video
+        });
+    },
 
-        onStateChange: (event) => {
-            const currentTime = ytPlayer.getCurrentTime();
-            const now = Date.now();
+    updatePlayback: (state) => {
+        WSClient.send({
+            type: 'PLAYBACK_UPDATE',
+            state: state
+        });
+    },
+
+    sendChatMessage: (text) => {
+        WSClient.send({
+            type: 'CHAT_MESSAGE',
+            text: text
+        });
+    },
+
+    toggleReaction: (messageId, reaction, userId) => {
+        WSClient.send({
+            type: 'TOGGLE_REACTION',
+            messageId: messageId,
+            reaction: reaction,
+            userId: userId
+        });
+    },
+
+    transferHost: (newHostId) => {
+        WSClient.send({
+            type: 'TRANSFER_HOST',
+            newHostId: newHostId
+        });
+    },
+
+    requestSync: () => {
+        WSClient.send({
+            type: 'SYNC_REQUEST'
+        });
+    },
+
+    deleteMessage: (messageId) => {
+        WSClient.send({
+            type: 'DELETE_MESSAGE',
+            messageId: messageId
+        });
+    }
+};
+
+/* ==========================================================================
+   APP CORE
+   ========================================================================== */
+const App = {
+    joinRoom: () => {
+        console.log('✅ App.joinRoom вызван!');
+        const nameInput = document.getElementById('username-input');
+        const roomCodeInput = document.getElementById('room-code-input');
+        
+        const name = nameInput.value.trim();
+        const roomCode = roomCodeInput.value.trim().toUpperCase();
+
+        if (!name) {
+            UI.toast('Введите ваше имя', 'error');
+            return;
+        }
+
+        State.user = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: name
+        };
+
+        App.connectWebSocket(roomCode);
+    },
+
+    connectWebSocket: (roomCode) => {
+        UI.toast('🔄 Подключаемся к серверу...', 'info');
+        UI.updateConnectionStatus('connecting');
+        
+        try {
+            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = isProduction ? window.location.host : 'localhost:3000';
+            const wsUrl = `${protocol}//${wsHost}/ws?room=${roomCode || ''}&userId=${State.user.id}`;
             
-            if (now - lastPlaybackUpdate > 500) {
-                switch (event.data) {
-                    case YT.PlayerState.PLAYING:
-                        if (State.isHost) {
-                            WSClient.updatePlayback({ playing: true, time: currentTime });
-                            lastPlaybackUpdate = now;
-                        }
-                        break;
-                    case YT.PlayerState.PAUSED:
-                        if (State.isHost) {
-                            WSClient.updatePlayback({ playing: false, time: currentTime });
-                            lastPlaybackUpdate = now;
-                        }
-                        break;
-                }
-            }
+            console.log('🔗 Подключаемся к:', wsUrl);
+            WSClient.ws = new WebSocket(wsUrl);
 
+            WSClient.ws.onopen = () => {
+                console.log('✅ WebSocket подключен!');
+                UI.toast('✅ Подключено к серверу', 'success');
+                UI.updateConnectionStatus('connected');
+                
+                if (roomCode) {
+                    WSClient.ws.send(JSON.stringify({
+                        type: 'JOIN_ROOM',
+                        roomCode: roomCode,
+                        user: State.user
+                    }));
+                } else {
+                    WSClient.ws.send(JSON.stringify({
+                        type: 'CREATE_ROOM', 
+                        user: State.user
+                    }));
+                }
+            };
+
+            WSClient.ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                console.log('📨 Получено:', message);
+                WSClient.handleMessage(message);
+            };
+
+            WSClient.ws.onerror = (error) => {
+                console.error('❌ WebSocket ошибка:', error);
+                UI.toast('❌ Ошибка подключения к серверу', 'error');
+                UI.updateConnectionStatus('disconnected');
+            };
+
+            WSClient.ws.onclose = () => {
+                console.log('🔌 WebSocket отключен');
+                UI.updateConnectionStatus('disconnected');
+            };
+            
+        } catch (error) {
+            UI.toast('❌ Ошибка: ' + error.message, 'error');
+            UI.updateConnectionStatus('disconnected');
+        }
+    },
+
+    handleRoomState: (message) => {
+        State.room = message.room;
+        State.video = message.video;
+        State.playbackState = message.playbackState;
+        State.users = message.users;
+        State.isHost = message.isHost;
+        
+        App.showMainInterface();
+        
+        if (State.video) {
+            Player.loadVideo(State.video.id, State.video.title, false);
+        }
+        
+        if (message.chatMessages) {
+            message.chatMessages.forEach(msg => {
+                Chat.handleChatMessage({ message: msg });
+            });
+        }
+        
+        UI.toast(`✅ Подключено к комнате ${State.room}`, 'success');
+        Chat.addSystemMessage(`🎉 Добро пожаловать в комнату ${State.room}!`);
+        
+        if (State.isHost) {
+            Chat.addSystemMessage('Вы создатель комнаты. Добавьте видео чтобы начать просмотр!');
+        } else {
+            Chat.addSystemMessage('Вы участник комнаты. Ожидайте когда создатель включит видео.');
+        }
+    },
+
+    handleRoomSync: (message) => {
+        State.video = message.video;
+        State.playbackState = message.playbackState;
+        State.users = message.users;
+        State.isHost = message.isHost;
+        Users.render();
+        
+        if (State.video) {
+            Player.loadVideo(State.video.id, State.video.title, false);
+        }
+    },
+
+    showMainInterface: () => {
+        document.getElementById('view-auth').classList.add('hidden');
+        document.getElementById('view-app').classList.remove('hidden');
+        
+        document.getElementById('current-user-name').textContent = State.user.name;
+        document.getElementById('room-code').textContent = State.room;
+        
+        // Обновляем классы ползунка в зависимости от прав
+        const slider = document.getElementById('seek-slider');
+        if (State.isHost) {
+            slider.classList.add('host-slider');
+            slider.classList.remove('participant-slider');
+        } else {
+            slider.classList.add('participant-slider');
+            slider.classList.remove('host-slider');
+        }
+        
+        Player.init();
+        Users.render();
+    },
+
+    leaveRoom: () => {
+        if (confirm('Покинуть комнату?')) {
+            if (WSClient.ws) {
+                WSClient.ws.close();
+            }
+            location.reload();
+        }
+    },
+
+    switchTab: (tab) => {
+        ['chat', 'search', 'users'].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.add('hidden');
+            document.getElementById(`tab-${t}-btn`).classList.remove('text-blue-500', 'border-b-2', 'border-blue-500', 'bg-slate-800/30');
+        });
+        
+        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        document.getElementById(`tab-${tab}-btn`).classList.add('text-blue-500', 'border-b-2', 'border-blue-500', 'bg-slate-800/30');
+    },
+
+    toggleSidebar: () => {
+        document.getElementById('sidebar').classList.toggle('translate-x-full');
+    },
+
+    focusSearch: () => {
+        App.switchTab('search');
+        setTimeout(() => document.getElementById('video-url-input').focus(), 100);
+    },
+
+    copyRoomCode: () => {
+        navigator.clipboard.writeText(State.room);
+        UI.toast('Код комнаты скопирован! Поделитесь с друзьями.', 'success');
+    }
+};
+
+/* ==========================================================================
+   PLAYER CONTROLLER
+   ========================================================================== */
+let ytPlayer = null;
+let progressInterval = null;
+let lastPlaybackUpdate = 0;
+
+const Player = {
+    init: () => {
+        if (window.YT && window.YT.Player) {
+            Player.createPlayer();
+        } else {
+            window.onYouTubeIframeAPIReady = Player.createPlayer;
+        }
+    },
+
+    createPlayer: () => {
+        ytPlayer = new YT.Player('yt-player', {
+            height: '100%',
+            width: '100%',
+            videoId: '',
+            playerVars: {
+                'playsinline': 1,
+                'controls': 0,
+                'disablekb': 1,
+                'rel': 0,
+                'modestbranding': 1,
+                'enablejsapi': 1
+            },
+            events: {
+                'onReady': Player.onReady,
+                'onStateChange': Player.onStateChange,
+                'onError': Player.onError
+            }
+        });
+    },
+
+    onReady: () => {
+        console.log('Player ready');
+        Player.showControls();
+        Player.initVolume();
+    },
+
+    onStateChange: (event) => {
+        const currentTime = ytPlayer.getCurrentTime();
+        const now = Date.now();
+        
+        if (now - lastPlaybackUpdate > 500) {
             switch (event.data) {
                 case YT.PlayerState.PLAYING:
-                    Player.updatePlayBtn(true);
-                    Player.startProgressLoop();
-                    Player.showLoading(false);
+                    if (State.isHost) {
+                        WSClient.updatePlayback({ playing: true, time: currentTime });
+                        lastPlaybackUpdate = now;
+                    }
                     break;
                 case YT.PlayerState.PAUSED:
-                    Player.updatePlayBtn(false);
-                    break;
-                case YT.PlayerState.BUFFERING:
-                    Player.showLoading(true);
-                    break;
-                case YT.PlayerState.ENDED:
-                    Player.updatePlayBtn(false);
+                    if (State.isHost) {
+                        WSClient.updatePlayback({ playing: false, time: currentTime });
+                        lastPlaybackUpdate = now;
+                    }
                     break;
             }
-        },
+        }
 
-        onError: (error) => {
-            console.error('YouTube Player Error:', error);
-            UI.toast('❌ Ошибка загрузки видео. Попробуйте другое видео.', 'error');
-            Player.showLoading(false);
-        },
-
-        loadVideo: (videoId, title, broadcast = true) => {
-            if (!State.isHost && broadcast) {
-                UI.toast('❌ Только создатель комнаты может менять видео', 'error');
-                return;
-            }
-            
-            if (!ytPlayer) {
-                UI.toast('Плеер не готов', 'error');
-                return;
-            }
-            
-            let finalVideoId = videoId;
-            let finalTitle = title;
-            
-            if (videoId.includes('_')) {
-                const vkVideo = VideoLoader.loadVKVideo(videoId);
-                finalVideoId = vkVideo.id;
-                finalTitle = vkVideo.title;
-            }
-            
-            State.video = { id: finalVideoId, title: finalTitle, originalId: videoId };
-            
-            document.getElementById('empty-state').classList.add('hidden');
-            document.getElementById('player-container').classList.remove('hidden');
-            
-            Player.showLoading(true);
-
-            try {
-                ytPlayer.loadVideoById(finalVideoId);
-                
-                if (broadcast) {
-                    WSClient.changeVideo(State.video);
-                    Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${finalTitle}`);
-                }
-
-                UI.toast(`🎬 Видео "${finalTitle}" загружено`, 'success');
-            } catch (error) {
-                console.error('Error loading video:', error);
-                UI.toast('❌ Ошибка загрузки видео', 'error');
+        switch (event.data) {
+            case YT.PlayerState.PLAYING:
+                Player.updatePlayBtn(true);
+                Player.startProgressLoop();
                 Player.showLoading(false);
-            }
-        },
+                break;
+            case YT.PlayerState.PAUSED:
+                Player.updatePlayBtn(false);
+                break;
+            case YT.PlayerState.BUFFERING:
+                Player.showLoading(true);
+                break;
+            case YT.PlayerState.ENDED:
+                Player.updatePlayBtn(false);
+                break;
+        }
+    },
 
-        handleVideoChanged: (message) => {
-    if (message.userId !== State.user.id) {
-        Player.loadVideo(message.video.id, message.video.title, false);
-        
-        // Сбрасываем ползунок при смене видео
-        setTimeout(() => {
-            const slider = document.getElementById('seek-slider');
-            if (slider) {
-                slider.value = 0;
-                slider.style.setProperty('--progress', '0%');
-                document.getElementById('time-current').textContent = '0:00';
-            }
-        }, 1000);
-    }
-},
+    onError: (error) => {
+        console.error('YouTube Player Error:', error);
+        UI.toast('❌ Ошибка загрузки видео. Попробуйте другое видео.', 'error');
+        Player.showLoading(false);
+    },
 
-        handlePlaybackSync: (message) => {
-    if (ytPlayer) {
-        const currentTime = ytPlayer.getCurrentTime();
-        
-        // Синхронизируем время если разница больше 2 секунд
-        if (Math.abs(currentTime - message.state.time) > 2) {
-            ytPlayer.seekTo(message.state.time, true);
+    loadVideo: (videoId, title, broadcast = true) => {
+        if (!State.isHost && broadcast) {
+            UI.toast('❌ Только создатель комнаты может менять видео', 'error');
+            return;
         }
         
-        // Синхронизируем воспроизведение/паузу
-        if (message.state.playing && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
-            ytPlayer.playVideo();
-        } else if (!message.state.playing && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-            ytPlayer.pauseVideo();
+        if (!ytPlayer) {
+            UI.toast('Плеер не готов', 'error');
+            return;
         }
         
-        // СИНХРОНИЗИРУЕМ ПОЛЗУНОК ДЛЯ ВСЕХ УЧАСТНИКОВ (ВКЛЮЧАЯ ХОСТА)
-        const slider = document.getElementById('seek-slider');
-        if (slider && document.activeElement !== slider) {
-            const total = ytPlayer.getDuration();
-            if (total && total !== Infinity) {
-                const progressPercent = (message.state.time / total) * 100;
-                slider.value = progressPercent;
-                slider.style.setProperty('--progress', progressPercent + '%');
-                
-                // Обновляем время
-                document.getElementById('time-current').textContent = Player.formatTime(message.state.time);
-            }
+        let finalVideoId = videoId;
+        let finalTitle = title;
+        
+        if (videoId.includes('_')) {
+            const vkVideo = VideoLoader.loadVKVideo(videoId);
+            finalVideoId = vkVideo.id;
+            finalTitle = vkVideo.title;
         }
-    }
-},
+        
+        State.video = { id: finalVideoId, title: finalTitle, originalId: videoId };
+        
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('player-container').classList.remove('hidden');
+        
+        Player.showLoading(true);
 
-        togglePlay: () => {
-            if (!ytPlayer) return;
-            
-            // Только хост может управлять воспроизведением
-            if (!State.isHost) {
-                UI.toast('❌ Только создатель комнаты может управлять воспроизведением', 'error');
-                return;
-            }
-            
-            if (ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-                ytPlayer.pauseVideo();
-            } else {
-                ytPlayer.playVideo();
-            }
-        },
-
-        onSeekInput: (val) => {
-    // Только хост может перематывать
-    if (!State.isHost) {
-        return;
-    }
-    
-    const duration = ytPlayer ? ytPlayer.getDuration() : 0;
-    if (duration > 0) {
-        const newTime = duration * (val / 100);
-        document.getElementById('time-current').textContent = Player.formatTime(newTime);
-    }
-},
-
-onSeekChange: (val) => {
-    if (!ytPlayer) return;
-    
-    // Только хост может перематывать
-    if (!State.isHost) {
-        // Сбрасываем ползунок на текущую позицию
-        const current = ytPlayer.getCurrentTime();
-        const total = ytPlayer.getDuration();
-        if (total > 0) {
-            const progressPercent = (current / total) * 100;
-            const slider = document.getElementById('seek-slider');
-            slider.value = progressPercent;
-            slider.style.setProperty('--progress', progressPercent + '%');
-        }
-        UI.toast('❌ Только создатель комнаты может перематывать видео', 'error');
-        return;
-    }
-    
-    const duration = ytPlayer.getDuration();
-    const newTime = duration * (val / 100);
-    ytPlayer.seekTo(newTime, true);
-},
-
-        setVolume: (val) => {
-    if (ytPlayer && ytPlayer.setVolume) {
         try {
-            const volumeValue = parseInt(val);
-            ytPlayer.setVolume(volumeValue);
+            ytPlayer.loadVideoById(finalVideoId);
             
-            // Обновляем CSS переменную для заполнения
-            const volumeSlider = document.getElementById('volume-slider');
-            if (volumeSlider) {
-                volumeSlider.style.setProperty('--volume', volumeValue + '%');
+            if (broadcast) {
+                WSClient.changeVideo(State.video);
+                Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${finalTitle}`);
             }
-            
-            // Сохраняем громкость в localStorage
-            localStorage.setItem('vibeo-volume', volumeValue);
+
+            UI.toast(`🎬 Видео "${finalTitle}" загружено`, 'success');
         } catch (error) {
-            console.error('Error setting volume:', error);
+            console.error('Error loading video:', error);
+            UI.toast('❌ Ошибка загрузки видео', 'error');
+            Player.showLoading(false);
         }
-    }
-},
-       initVolume: () => {
-    const savedVolume = localStorage.getItem('vibeo-volume');
-    const volumeSlider = document.getElementById('volume-slider');
-    
-    if (savedVolume) {
-        volumeSlider.value = savedVolume;
-        volumeSlider.style.setProperty('--volume', savedVolume + '%');
-        Player.setVolume(savedVolume);
-    } else {
-        volumeSlider.value = 100;
-        volumeSlider.style.setProperty('--volume', '100%');
-        Player.setVolume(100);
-    }
-},
+    },
 
-        updatePlayBtn: (isPlaying) => {
-            const btn = document.getElementById('play-btn');
-            btn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play ml-1"></i>';
-        },
+    handleVideoChanged: (message) => {
+        if (message.userId !== State.user.id) {
+            Player.loadVideo(message.video.id, message.video.title, false);
+            
+            // Сбрасываем ползунок при смене видео
+            setTimeout(() => {
+                const slider = document.getElementById('seek-slider');
+                if (slider) {
+                    slider.value = 0;
+                    slider.style.setProperty('--progress', '0%');
+                    document.getElementById('time-current').textContent = '0:00';
+                }
+            }, 1000);
+        }
+    },
 
-      startProgressLoop: () => {
-    if (progressInterval) clearInterval(progressInterval);
-    
-    progressInterval = setInterval(() => {
-        if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+    handlePlaybackSync: (message) => {
+        if (ytPlayer) {
+            const currentTime = ytPlayer.getCurrentTime();
+            
+            // Синхронизируем время если разница больше 2 секунд
+            if (Math.abs(currentTime - message.state.time) > 2) {
+                ytPlayer.seekTo(message.state.time, true);
+            }
+            
+            // Синхронизируем воспроизведение/паузу
+            if (message.state.playing && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+                ytPlayer.playVideo();
+            } else if (!message.state.playing && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                ytPlayer.pauseVideo();
+            }
+            
+            // СИНХРОНИЗИРУЕМ ПОЛЗУНОК ДЛЯ ВСЕХ УЧАСТНИКОВ (ВКЛЮЧАЯ ХОСТА)
+            const slider = document.getElementById('seek-slider');
+            if (slider && document.activeElement !== slider) {
+                const total = ytPlayer.getDuration();
+                if (total && total !== Infinity) {
+                    const progressPercent = (message.state.time / total) * 100;
+                    slider.value = progressPercent;
+                    slider.style.setProperty('--progress', progressPercent + '%');
+                    
+                    // Обновляем время
+                    document.getElementById('time-current').textContent = Player.formatTime(message.state.time);
+                }
+            }
+        }
+    },
+
+    togglePlay: () => {
+        if (!ytPlayer) return;
         
-        try {
+        // Только хост может управлять воспроизведением
+        if (!State.isHost) {
+            UI.toast('❌ Только создатель комнаты может управлять воспроизведением', 'error');
+            return;
+        }
+        
+        if (ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+            ytPlayer.pauseVideo();
+        } else {
+            ytPlayer.playVideo();
+        }
+    },
+
+    onSeekInput: (val) => {
+        // Только хост может перематывать
+        if (!State.isHost) {
+            return;
+        }
+        
+        const duration = ytPlayer ? ytPlayer.getDuration() : 0;
+        if (duration > 0) {
+            const newTime = duration * (val / 100);
+            document.getElementById('time-current').textContent = Player.formatTime(newTime);
+        }
+    },
+
+    onSeekChange: (val) => {
+        if (!ytPlayer) return;
+        
+        // Только хост может перематывать
+        if (!State.isHost) {
+            // Сбрасываем ползунок на текущую позицию
             const current = ytPlayer.getCurrentTime();
             const total = ytPlayer.getDuration();
-            
-            if (!total || total === Infinity) return;
-
-            const slider = document.getElementById('seek-slider');
-            const progressPercent = (current / total) * 100;
-            
-            // ВСЕГДА обновляем ползунок у хоста, независимо от активного элемента
-            slider.value = progressPercent;
-            slider.style.setProperty('--progress', progressPercent + '%');
-
-            // Обновляем время
-            document.getElementById('time-current').textContent = Player.formatTime(current);
-            document.getElementById('time-total').textContent = Player.formatTime(total);
-            
-        } catch (error) {
-            console.error('Progress update error:', error);
+            if (total > 0) {
+                const progressPercent = (current / total) * 100;
+                const slider = document.getElementById('seek-slider');
+                slider.value = progressPercent;
+                slider.style.setProperty('--progress', progressPercent + '%');
+            }
+            UI.toast('❌ Только создатель комнаты может перематывать видео', 'error');
+            return;
         }
-    }, 500);
-},
-
-        formatTime: (seconds) => {
-            if (!seconds || seconds === Infinity) return '0:00';
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        },
-
-        showLoading: (show) => {
-            const overlay = document.getElementById('loading-overlay');
-            if (show) {
-                overlay.classList.remove('hidden');
-            } else {
-                overlay.classList.add('hidden');
-            }
-        },
-
-        showControls: () => {
-            const controls = document.getElementById('controls-bar');
-            controls.classList.remove('controls-hidden');
-            controls.classList.add('controls-visible');
-        },
-
-        requestSync: () => {
-            WSClient.requestSync();
-            UI.toast('Запрос синхронизации отправлен', 'info');
-        }
-    };
-
-    /* ==========================================================================
-       USERS MANAGEMENT
-       ========================================================================== */
-    const Users = {
-        handleUserJoined: (message) => {
-            State.users = message.users;
-            Users.render();
-            Chat.addSystemMessage(`👋 ${message.user.name} присоединился`);
-        },
-
-        handleUserLeft: (message) => {
-            State.users = message.users;
-            Users.render();
-            Chat.addSystemMessage(`🚪 ${message.userName} вышел`);
-        },
-
-        handleHostChanged: (message) => {
-            State.users = message.users;
-            
-            // Обновляем наш статус хоста
-            State.isHost = State.user.id === message.newHostId;
-            
-            Users.render();
-            
-            if (State.isHost) {
-                Chat.addSystemMessage(`👑 Теперь вы создатель комнаты!`);
-                UI.toast('👑 Вы стали создателем комнаты!', 'success');
-            } else {
-                Chat.addSystemMessage(`👑 ${message.newHostName} теперь создатель комнаты`);
-            }
-        },
-
-        transferHost: (newHostId) => {
-            if (!State.isHost) {
-                UI.toast('❌ Только создатель комнаты может передавать права', 'error');
-                return;
-            }
-            
-            if (newHostId === State.user.id) {
-                UI.toast('❌ Нельзя передать права самому себе', 'error');
-                return;
-            }
-            
-            if (confirm('Передать права создателя комнаты?')) {
-                WSClient.transferHost(newHostId);
-            }
-        },
-
-        render: () => {
-            const list = document.getElementById('users-list');
-            const count = document.getElementById('users-count');
-            
-            list.innerHTML = '';
-            count.textContent = `${State.users.length} участников`;
-            count.classList.remove('hidden');
-
-            State.users.forEach(user => {
-                const li = document.createElement('li');
-                li.className = 'user-item flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 relative';
-                
-                const isCurrentUser = user.id === State.user.id;
-                const canTransfer = State.isHost && !user.isHost && !isCurrentUser;
-                
-                li.innerHTML = `
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white">
-                        ${user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-medium text-slate-200 truncate flex items-center gap-2">
-                            ${user.name}
-                            ${user.isHost ? '<span class="text-yellow-400 text-xs">👑</span>' : ''}
-                        </div>
-                        <div class="text-xs text-slate-500">${user.isHost ? 'Создатель комнаты' : 'Участник'}</div>
-                    </div>
-                    ${isCurrentUser ? '<span class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded">Вы</span>' : ''}
-                    ${canTransfer ? '<button class="transfer-host-btn" onclick="Users.transferHost(\'' + user.id + '\')" title="Передать права">👑 Передать</button>' : ''}
-                `;
-                list.appendChild(li);
-            });
-        }
-    };
-
-    /* ==========================================================================
-       CHAT SYSTEM
-       ========================================================================== */
-    const Chat = {
-        sendMessage: (e) => {
-            e.preventDefault();
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text) return;
-
-            WSClient.sendChatMessage(text);
-            input.value = '';
-        },
-        deleteMessage: (messageId) => {
-    if (!confirm(State.isHost ? 'Удалить это сообщение?' : 'Удалить свое сообщение?')) {
-        return;
-    }
-    
-    WSClient.send({
-        type: 'DELETE_MESSAGE',
-        messageId: messageId
-    });
-},
-
-handleMessageDeleted: (message) => {
-    const messageElement = document.querySelector(`[data-message-id="${message.messageId}"]`);
-    if (messageElement) {
-        // Анимация удаления
-        messageElement.style.opacity = '0';
-        messageElement.style.transform = 'translateX(-20px)';
-        messageElement.style.transition = 'all 0.3s ease';
         
-        setTimeout(() => {
-            messageElement.remove();
-            
-            // Добавляем системное сообщение об удалении
-            if (message.isHost) {
-                Chat.addSystemMessage(`🗑️ Создатель удалил сообщение`);
-            }
-        }, 300);
-    }
-},
+        const duration = ytPlayer.getDuration();
+        const newTime = duration * (val / 100);
+        ytPlayer.seekTo(newTime, true);
+    },
 
-        handleChatMessage: (message) => {
-            const container = document.getElementById('chat-messages');
-            const div = document.createElement('div');
-            div.setAttribute('data-message-id', message.message.id);
-            
-            const isMe = message.message.userId === State.user.id;
-            
-            if (isMe) {
-                div.className = 'flex justify-end';
-                div.innerHTML = Chat.createMessageHTML(message.message, true);
-            } else {
-                div.className = 'flex justify-start';
-                div.innerHTML = Chat.createMessageHTML(message.message, false);
-            }
-            
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-            
-            // Добавляем обработчики для реакций
-            Chat.attachReactionHandlers(div, message.message.id);
-        },
-
-        createMessageHTML: (message, isMe) => {
-    const reactionsHTML = Chat.createReactionsHTML(message.reactions, message.id);
-    const canDelete = State.isHost || (isMe && !message.isSystem);
-    
-    // Кнопка удаления (только для своих сообщений или для хоста)
-    const deleteButton = canDelete ? 
-        `<button class="delete-message-btn opacity-0 transition-opacity text-xs text-slate-400 hover:text-red-400 ml-2" 
-                onclick="Chat.deleteMessage('${message.id}')"
-                title="${State.isHost ? 'Удалить сообщение' : 'Удалить свое сообщение'}">
-            <i class="fa-solid fa-trash"></i>
-        </button>` : '';
-
-    if (isMe) {
-        return `<div class="flex flex-col items-end max-w-[85%] group relative">
-            <div class="flex items-end gap-2">
-                <div class="bg-blue-600 text-white msg-bubble rounded-tr-none shadow-lg shadow-blue-900/20">${message.text}</div>
-                ${deleteButton}
-            </div>
-            ${reactionsHTML}
-            <span class="text-[10px] text-slate-500 mt-1">${new Date(message.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
-        </div>`;
-    } else {
-        return `<div class="flex flex-col items-start max-w-[85%] group relative">
-            <div class="flex items-end gap-2">
-                <div class="bg-slate-800 text-slate-200 msg-bubble rounded-tl-none border border-slate-700">${message.text}</div>
-                ${deleteButton}
-            </div>
-            ${reactionsHTML}
-            <span class="text-[10px] text-slate-500 ml-2 mb-1">${message.author} ${message.isHost ? '👑' : ''}</span>
-            <span class="text-[10px] text-slate-500 ml-2 mt-1">${new Date(message.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
-        </div>`;
-    }
-},
-
-        createReactionsHTML: (reactions, messageId) => {
-            const reactionEmojis = {
-                'like': '👍',
-                'heart': '❤️',
-                'laugh': '😂',
-                'wow': '😮',
-                'sad': '😢',
-                'angry': '😠'
-            };
-
-            let reactionsHTML = '';
-            
-            // Показываем существующие реакции
-            if (reactions && Object.keys(reactions).length > 0) {
-                for (const [reaction, users] of Object.entries(reactions)) {
-                    const count = users.length;
-                    const hasReacted = users.includes(State.user.id);
-                    reactionsHTML += `
-                        <button class="reaction-btn ${hasReacted ? 'active' : ''}" 
-                                data-message-id="${messageId}" 
-                                data-reaction="${reaction}">
-                            ${reactionEmojis[reaction]}<span class="reaction-count">${count}</span>
-                        </button>
-                    `;
-                }
-            }
-
-            // Кнопка добавления реакции (всегда показываем)
-            reactionsHTML += `
-                <button class="reaction-btn add-reaction-btn" data-message-id="${messageId}" title="Добавить реакцию">
-                    <i class="fa-solid fa-face-smile text-xs"></i>
-                </button>
-            `;
-
-            return `<div class="reactions-container">${reactionsHTML}</div>`;
-        },
-
-        attachReactionHandlers: (messageElement, messageId) => {
-            // Обработчики для существующих реакций
-            messageElement.querySelectorAll('.reaction-btn:not(.add-reaction-btn)').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const reaction = btn.dataset.reaction;
-                    Chat.toggleReaction(messageId, reaction);
-                });
-            });
-
-            // Обработчик для кнопки добавления реакции
-            messageElement.querySelector('.add-reaction-btn')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                Chat.showReactionPicker(e.target, messageId);
-            });
-        },
-
-        toggleReaction: (messageId, reaction) => {
-            WSClient.toggleReaction(messageId, reaction, State.user.id);
-        },
-
-        showReactionPicker: (button, messageId) => {
-    // Удаляем существующий пикер
-    const existingPicker = document.querySelector('.reaction-picker');
-    if (existingPicker) {
-        existingPicker.remove();
-        return;
-    }
-
-    const picker = document.createElement('div');
-    picker.className = 'reaction-picker';
-    
-    const reactions = {
-        'like': '👍',
-        'heart': '❤️',
-        'laugh': '😂',
-        'wow': '😮',
-        'sad': '😢',
-        'angry': '😠'
-    };
-
-    let pickerHTML = '';
-    for (const [reaction, emoji] of Object.entries(reactions)) {
-        pickerHTML += `
-            <button class="reaction-picker-btn" data-reaction="${reaction}">
-                ${emoji}
-            </button>
-        `;
-    }
-
-    picker.innerHTML = pickerHTML;
-
-    // Добавляем в DOM для получения размеров
-    document.body.appendChild(picker);
-    
-    // Получаем размеры пикера
-    const pickerRect = picker.getBoundingClientRect();
-    const buttonRect = button.getBoundingClientRect();
-    
-    // Определяем позиционирование
-    let left = buttonRect.left - (pickerRect.width / 2) + (buttonRect.width / 2);
-    let top = buttonRect.top - pickerRect.height - 10;
-    
-    // Проверяем, чтобы пикер не выходил за границы экрана
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Корректируем по горизонтали
-    if (left < 10) {
-        left = 10;
-    } else if (left + pickerRect.width > viewportWidth - 10) {
-        left = viewportWidth - pickerRect.width - 10;
-    }
-    
-    // Корректируем по вертикали (если не помещается сверху, показываем снизу)
-    if (top < 10) {
-        top = buttonRect.bottom + 10;
-    }
-    
-    // Устанавливаем позицию
-    picker.style.left = `${left}px`;
-    picker.style.top = `${top}px`;
-    picker.style.bottom = 'auto';
-
-    // Добавляем обработчики
-    picker.querySelectorAll('.reaction-picker-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const reaction = btn.dataset.reaction;
-            Chat.toggleReaction(messageId, reaction);
-            picker.remove();
-        });
-    });
-
-    // Закрытие при клике вне
-    setTimeout(() => {
-        const closePicker = (e) => {
-            if (!picker.contains(e.target) && e.target !== button) {
-                picker.remove();
-                document.removeEventListener('click', closePicker);
-                document.removeEventListener('touchstart', closePicker);
-            }
-        };
-        document.addEventListener('click', closePicker);
-        document.addEventListener('touchstart', closePicker);
-    }, 100);
-},
-
-        handleReactionUpdate: (message) => {
-            // Находим сообщение по ID и обновляем реакции
-            const messageElement = document.querySelector(`[data-message-id="${message.messageId}"]`);
-            if (messageElement) {
-                const reactionsContainer = messageElement.querySelector('.reactions-container');
-                if (reactionsContainer) {
-                    reactionsContainer.outerHTML = Chat.createReactionsHTML(message.reactions, message.messageId);
-                    Chat.attachReactionHandlers(messageElement, message.messageId);
-                }
-            }
-        },
-
-        addSystemMessage: (text) => {
-    const container = document.getElementById('chat-messages');
-    const div = document.createElement('div');
-    div.className = 'text-center my-2';
-    div.innerHTML = `<span class="text-[10px] text-slate-500 bg-slate-800/50 px-2 py-1 rounded-full">${text}</span>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-},
-    };
-
-    /* ==========================================================================
-       VIDEO URL LOADER
-       ========================================================================== */
-    const VideoLoader = {
-        loadFromUrl: () => {
-            const urlInput = document.getElementById('video-url-input');
-            const url = urlInput.value.trim();
-            
-            if (!url) {
-                UI.toast('❌ Введите ссылку на видео', 'error');
-                return;
-            }
-
-            UI.toast('🔄 Определяем видео...', 'info');
-
+    setVolume: (val) => {
+        if (ytPlayer && ytPlayer.setVolume) {
             try {
-                const videoInfo = VideoLoader.parseVideoUrl(url);
+                const volumeValue = parseInt(val);
+                ytPlayer.setVolume(volumeValue);
                 
-                if (videoInfo) {
-                    Player.loadVideo(videoInfo.id, videoInfo.title);
-                    urlInput.value = '';
-                } else {
-                    UI.toast('❌ Не удалось распознать ссылку. Поддерживаются YouTube и VK', 'error');
+                // Обновляем CSS переменную для заполнения
+                const volumeSlider = document.getElementById('volume-slider');
+                if (volumeSlider) {
+                    volumeSlider.style.setProperty('--volume', volumeValue + '%');
                 }
+                
+                // Сохраняем громкость в localStorage
+                localStorage.setItem('vibeo-volume', volumeValue);
+            } catch (error) {
+                console.error('Error setting volume:', error);
+            }
+        }
+    },
+
+    initVolume: () => {
+        const savedVolume = localStorage.getItem('vibeo-volume');
+        const volumeSlider = document.getElementById('volume-slider');
+        
+        if (savedVolume) {
+            volumeSlider.value = savedVolume;
+            volumeSlider.style.setProperty('--volume', savedVolume + '%');
+            Player.setVolume(savedVolume);
+        } else {
+            volumeSlider.value = 100;
+            volumeSlider.style.setProperty('--volume', '100%');
+            Player.setVolume(100);
+        }
+    },
+
+    updatePlayBtn: (isPlaying) => {
+        const btn = document.getElementById('play-btn');
+        btn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play ml-1"></i>';
+    },
+
+    startProgressLoop: () => {
+        if (progressInterval) clearInterval(progressInterval);
+        
+        progressInterval = setInterval(() => {
+            if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+            
+            try {
+                const current = ytPlayer.getCurrentTime();
+                const total = ytPlayer.getDuration();
+                
+                if (!total || total === Infinity) return;
+
+                const slider = document.getElementById('seek-slider');
+                const progressPercent = (current / total) * 100;
+                
+                // ВСЕГДА обновляем ползунок у хоста, независимо от активного элемента
+                slider.value = progressPercent;
+                slider.style.setProperty('--progress', progressPercent + '%');
+
+                // Обновляем время
+                document.getElementById('time-current').textContent = Player.formatTime(current);
+                document.getElementById('time-total').textContent = Player.formatTime(total);
                 
             } catch (error) {
-                console.error('Error loading video from URL:', error);
-                UI.toast('❌ Ошибка загрузки видео', 'error');
+                console.error('Progress update error:', error);
             }
-        },
+        }, 500);
+    },
 
-        loadExample: (type) => {
-            const examples = {
-                youtube: {
-                    url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-                    title: 'Lofi hip hop radio 📚'
-                },
-                vk: {
-                    url: 'https://vk.com/video-205631275_456239152',
-                    title: 'VK Video Demo 🎬'
+    formatTime: (seconds) => {
+        if (!seconds || seconds === Infinity) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    },
+
+    showLoading: (show) => {
+        const overlay = document.getElementById('loading-overlay');
+        if (show) {
+            overlay.classList.remove('hidden');
+        } else {
+            overlay.classList.add('hidden');
+        }
+    },
+
+    showControls: () => {
+        const controls = document.getElementById('controls-bar');
+        controls.classList.remove('controls-hidden');
+        controls.classList.add('controls-visible');
+    },
+
+    requestSync: () => {
+        WSClient.requestSync();
+        UI.toast('Запрос синхронизации отправлен', 'info');
+    }
+};
+
+/* ==========================================================================
+   USERS MANAGEMENT
+   ========================================================================== */
+const Users = {
+    handleUserJoined: (message) => {
+        State.users = message.users;
+        Users.render();
+        Chat.addSystemMessage(`👋 ${message.user.name} присоединился`);
+    },
+
+    handleUserLeft: (message) => {
+        State.users = message.users;
+        Users.render();
+        Chat.addSystemMessage(`🚪 ${message.userName} вышел`);
+    },
+
+    handleHostChanged: (message) => {
+        State.users = message.users;
+        
+        // Обновляем наш статус хоста
+        State.isHost = State.user.id === message.newHostId;
+        
+        Users.render();
+        
+        if (State.isHost) {
+            Chat.addSystemMessage(`👑 Теперь вы создатель комнаты!`);
+            UI.toast('👑 Вы стали создателем комнаты!', 'success');
+        } else {
+            Chat.addSystemMessage(`👑 ${message.newHostName} теперь создатель комнаты`);
+        }
+    },
+
+    transferHost: (newHostId) => {
+        if (!State.isHost) {
+            UI.toast('❌ Только создатель комнаты может передавать права', 'error');
+            return;
+        }
+        
+        if (newHostId === State.user.id) {
+            UI.toast('❌ Нельзя передать права самому себе', 'error');
+            return;
+        }
+        
+        if (confirm('Передать права создателя комнаты?')) {
+            WSClient.transferHost(newHostId);
+        }
+    },
+
+    render: () => {
+        const list = document.getElementById('users-list');
+        const count = document.getElementById('users-count');
+        
+        list.innerHTML = '';
+        count.textContent = `${State.users.length} участников`;
+        count.classList.remove('hidden');
+
+        State.users.forEach(user => {
+            const li = document.createElement('li');
+            li.className = 'user-item flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 relative';
+            
+            const isCurrentUser = user.id === State.user.id;
+            const canTransfer = State.isHost && !user.isHost && !isCurrentUser;
+            
+            li.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white">
+                    ${user.name.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-slate-200 truncate flex items-center gap-2">
+                        ${user.name}
+                        ${user.isHost ? '<span class="text-yellow-400 text-xs">👑</span>' : ''}
+                    </div>
+                    <div class="text-xs text-slate-500">${user.isHost ? 'Создатель комнаты' : 'Участник'}</div>
+                </div>
+                ${isCurrentUser ? '<span class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded">Вы</span>' : ''}
+                ${canTransfer ? '<button class="transfer-host-btn" onclick="Users.transferHost(\'' + user.id + '\')" title="Передать права">👑 Передать</button>' : ''}
+            `;
+            list.appendChild(li);
+        });
+    }
+};
+
+/* ==========================================================================
+   CHAT SYSTEM
+   ========================================================================== */
+const Chat = {
+    sendMessage: (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        WSClient.sendChatMessage(text);
+        input.value = '';
+    },
+
+    deleteMessage: (messageId) => {
+        if (!confirm(State.isHost ? 'Удалить это сообщение?' : 'Удалить свое сообщение?')) {
+            return;
+        }
+        
+        WSClient.send({
+            type: 'DELETE_MESSAGE',
+            messageId: messageId
+        });
+    },
+
+    handleMessageDeleted: (message) => {
+        const messageElement = document.querySelector(`[data-message-id="${message.messageId}"]`);
+        if (messageElement) {
+            // Анимация удаления
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'translateX(-20px)';
+            messageElement.style.transition = 'all 0.3s ease';
+            
+            setTimeout(() => {
+                messageElement.remove();
+                
+                // Добавляем системное сообщение об удалении
+                if (message.isHost) {
+                    Chat.addSystemMessage(`🗑️ Создатель удалил сообщение`);
+                }
+            }, 300);
+        }
+    },
+
+    handleChatMessage: (message) => {
+        const container = document.getElementById('chat-messages');
+        const div = document.createElement('div');
+        div.setAttribute('data-message-id', message.message.id);
+        
+        const isMe = message.message.userId === State.user.id;
+        
+        if (isMe) {
+            div.className = 'flex justify-end';
+            div.innerHTML = Chat.createMessageHTML(message.message, true);
+        } else {
+            div.className = 'flex justify-start';
+            div.innerHTML = Chat.createMessageHTML(message.message, false);
+        }
+        
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        
+        // Добавляем обработчики для реакций
+        Chat.attachReactionHandlers(div, message.message.id);
+    },
+
+    createMessageHTML: (message, isMe) => {
+        const reactionsHTML = Chat.createReactionsHTML(message.reactions, message.id);
+        const canDelete = State.isHost || (isMe && !message.isSystem);
+        
+        // Кнопка удаления (только для своих сообщений или для хоста)
+        const deleteButton = canDelete ? 
+            `<button class="delete-message-btn opacity-0 transition-opacity text-xs text-slate-400 hover:text-red-400 ml-2" 
+                    onclick="Chat.deleteMessage('${message.id}')"
+                    title="${State.isHost ? 'Удалить сообщение' : 'Удалить свое сообщение'}">
+                <i class="fa-solid fa-trash"></i>
+            </button>` : '';
+
+        if (isMe) {
+            return `<div class="flex flex-col items-end max-w-[85%] group relative">
+                <div class="flex items-end gap-2">
+                    <div class="bg-blue-600 text-white msg-bubble rounded-tr-none shadow-lg shadow-blue-900/20">${message.text}</div>
+                    ${deleteButton}
+                </div>
+                ${reactionsHTML}
+                <span class="text-[10px] text-slate-500 mt-1">${new Date(message.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>`;
+        } else {
+            return `<div class="flex flex-col items-start max-w-[85%] group relative">
+                <div class="flex items-end gap-2">
+                    <div class="bg-slate-800 text-slate-200 msg-bubble rounded-tl-none border border-slate-700">${message.text}</div>
+                    ${deleteButton}
+                </div>
+                ${reactionsHTML}
+                <span class="text-[10px] text-slate-500 ml-2 mb-1">${message.author} ${message.isHost ? '👑' : ''}</span>
+                <span class="text-[10px] text-slate-500 ml-2 mt-1">${new Date(message.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>`;
+        }
+    },
+
+    createReactionsHTML: (reactions, messageId) => {
+        const reactionEmojis = {
+            'like': '👍',
+            'heart': '❤️',
+            'laugh': '😂',
+            'wow': '😮',
+            'sad': '😢',
+            'angry': '😠'
+        };
+
+        let reactionsHTML = '';
+        
+        // Показываем существующие реакции
+        if (reactions && Object.keys(reactions).length > 0) {
+            for (const [reaction, users] of Object.entries(reactions)) {
+                const count = users.length;
+                const hasReacted = users.includes(State.user.id);
+                reactionsHTML += `
+                    <button class="reaction-btn ${hasReacted ? 'active' : ''}" 
+                            data-message-id="${messageId}" 
+                            data-reaction="${reaction}">
+                        ${reactionEmojis[reaction]}<span class="reaction-count">${count}</span>
+                    </button>
+                `;
+            }
+        }
+
+        // Кнопка добавления реакции (всегда показываем)
+        reactionsHTML += `
+            <button class="reaction-btn add-reaction-btn" data-message-id="${messageId}" title="Добавить реакцию">
+                <i class="fa-solid fa-face-smile text-xs"></i>
+            </button>
+        `;
+
+        return `<div class="reactions-container">${reactionsHTML}</div>`;
+    },
+
+    attachReactionHandlers: (messageElement, messageId) => {
+        // Обработчики для существующих реакций
+        messageElement.querySelectorAll('.reaction-btn:not(.add-reaction-btn)').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const reaction = btn.dataset.reaction;
+                Chat.toggleReaction(messageId, reaction);
+            });
+        });
+
+        // Обработчик для кнопки добавления реакции
+        messageElement.querySelector('.add-reaction-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            Chat.showReactionPicker(e.target, messageId);
+        });
+    },
+
+    toggleReaction: (messageId, reaction) => {
+        WSClient.toggleReaction(messageId, reaction, State.user.id);
+    },
+
+    showReactionPicker: (button, messageId) => {
+        // Удаляем существующий пикер
+        const existingPicker = document.querySelector('.reaction-picker');
+        if (existingPicker) {
+            existingPicker.remove();
+            return;
+        }
+
+        const picker = document.createElement('div');
+        picker.className = 'reaction-picker';
+        
+        const reactions = {
+            'like': '👍',
+            'heart': '❤️',
+            'laugh': '😂',
+            'wow': '😮',
+            'sad': '😢',
+            'angry': '😠'
+        };
+
+        let pickerHTML = '';
+        for (const [reaction, emoji] of Object.entries(reactions)) {
+            pickerHTML += `
+                <button class="reaction-picker-btn" data-reaction="${reaction}">
+                    ${emoji}
+                </button>
+            `;
+        }
+
+        picker.innerHTML = pickerHTML;
+
+        // Добавляем в DOM для получения размеров
+        document.body.appendChild(picker);
+        
+        // Получаем размеры пикера
+        const pickerRect = picker.getBoundingClientRect();
+        const buttonRect = button.getBoundingClientRect();
+        
+        // Определяем позиционирование
+        let left = buttonRect.left - (pickerRect.width / 2) + (buttonRect.width / 2);
+        let top = buttonRect.top - pickerRect.height - 10;
+        
+        // Проверяем, чтобы пикер не выходил за границы экрана
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Корректируем по горизонтали
+        if (left < 10) {
+            left = 10;
+        } else if (left + pickerRect.width > viewportWidth - 10) {
+            left = viewportWidth - pickerRect.width - 10;
+        }
+        
+        // Корректируем по вертикали (если не помещается сверху, показываем снизу)
+        if (top < 10) {
+            top = buttonRect.bottom + 10;
+        }
+        
+        // Устанавливаем позицию
+        picker.style.left = `${left}px`;
+        picker.style.top = `${top}px`;
+        picker.style.bottom = 'auto';
+
+        // Добавляем обработчики
+        picker.querySelectorAll('.reaction-picker-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const reaction = btn.dataset.reaction;
+                Chat.toggleReaction(messageId, reaction);
+                picker.remove();
+            });
+        });
+
+        // Закрытие при клике вне
+        setTimeout(() => {
+            const closePicker = (e) => {
+                if (!picker.contains(e.target) && e.target !== button) {
+                    picker.remove();
+                    document.removeEventListener('click', closePicker);
+                    document.removeEventListener('touchstart', closePicker);
                 }
             };
-            
-            const example = examples[type];
-            document.getElementById('video-url-input').value = example.url;
-            UI.toast(`✅ Пример ${type} видео добавлен в поле`, 'info');
-        },
+            document.addEventListener('click', closePicker);
+            document.addEventListener('touchstart', closePicker);
+        }, 100);
+    },
 
-        parseVideoUrl: (url) => {
-            console.log('🔍 Парсим URL:', url);
+    handleReactionUpdate: (message) => {
+        // Находим сообщение по ID и обновляем реакции
+        const messageElement = document.querySelector(`[data-message-id="${message.messageId}"]`);
+        if (messageElement) {
+            const reactionsContainer = messageElement.querySelector('.reactions-container');
+            if (reactionsContainer) {
+                reactionsContainer.outerHTML = Chat.createReactionsHTML(message.reactions, message.messageId);
+                Chat.attachReactionHandlers(messageElement, message.messageId);
+            }
+        }
+    },
+
+    addSystemMessage: (text) => {
+        const container = document.getElementById('chat-messages');
+        const div = document.createElement('div');
+        div.className = 'text-center my-2';
+        div.innerHTML = `<span class="text-[10px] text-slate-500 bg-slate-800/50 px-2 py-1 rounded-full">${text}</span>`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+};
+
+/* ==========================================================================
+   VIDEO URL LOADER
+   ========================================================================== */
+const VideoLoader = {
+    loadFromUrl: () => {
+        const urlInput = document.getElementById('video-url-input');
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            UI.toast('❌ Введите ссылку на видео', 'error');
+            return;
+        }
+
+        UI.toast('🔄 Определяем видео...', 'info');
+
+        try {
+            const videoInfo = VideoLoader.parseVideoUrl(url);
             
-            // YouTube парсинг - более надежный
-            const youtubeRegexes = [
-                /(?:youtube\.com\/watch\?v=)([^"&?\/\s]{11})/,
-                /(?:youtube\.com\/embed\/)([^"&?\/\s]{11})/,
-                /(?:youtu\.be\/)([^"&?\/\s]{11})/,
-                /(?:youtube\.com\/.*[?&]v=)([^"&?\/\s]{11})/
-            ];
+            if (videoInfo) {
+                Player.loadVideo(videoInfo.id, videoInfo.title);
+                urlInput.value = '';
+            } else {
+                UI.toast('❌ Не удалось распознать ссылку. Поддерживаются YouTube и VK', 'error');
+            }
             
-            for (const regex of youtubeRegexes) {
-                const match = url.match(regex);
-                if (match && match[1]) {
-                    console.log('✅ Найден YouTube ID:', match[1]);
+        } catch (error) {
+            console.error('Error loading video from URL:', error);
+            UI.toast('❌ Ошибка загрузки видео', 'error');
+        }
+    },
+
+    loadExample: (type) => {
+        const examples = {
+            youtube: {
+                url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                title: 'Lofi hip hop radio 📚'
+            },
+            vk: {
+                url: 'https://vk.com/video-205631275_456239152',
+                title: 'VK Video Demo 🎬'
+            }
+        };
+        
+        const example = examples[type];
+        document.getElementById('video-url-input').value = example.url;
+        UI.toast(`✅ Пример ${type} видео добавлен в поле`, 'info');
+    },
+
+    parseVideoUrl: (url) => {
+        console.log('🔍 Парсим URL:', url);
+        
+        // YouTube парсинг - более надежный
+        const youtubeRegexes = [
+            /(?:youtube\.com\/watch\?v=)([^"&?\/\s]{11})/,
+            /(?:youtube\.com\/embed\/)([^"&?\/\s]{11})/,
+            /(?:youtu\.be\/)([^"&?\/\s]{11})/,
+            /(?:youtube\.com\/.*[?&]v=)([^"&?\/\s]{11})/
+        ];
+        
+        for (const regex of youtubeRegexes) {
+            const match = url.match(regex);
+            if (match && match[1]) {
+                console.log('✅ Найден YouTube ID:', match[1]);
+                return {
+                    id: match[1],
+                    title: 'YouTube видео',
+                    type: 'youtube'
+                };
+            }
+        }
+
+        // VK Video парсинг (старый и новый формат)
+        const vkRegex = /(?:vk\.com|vkvideo\.ru)\/video(-?\d+_\d+)/;
+        const vkMatch = url.match(vkRegex);
+        
+        if (vkMatch) {
+            console.log('✅ Найден VK ID:', vkMatch[1]);
+            return {
+                id: vkMatch[1],
+                title: 'VK видео',
+                type: 'vk'
+            };
+        }
+
+        console.log('❌ Не распознан URL');
+        return null;
+    },
+
+    loadVKVideo: async (videoId) => {
+        try {
+            // Для VK Mini Apps используем VK Bridge
+            if (window.vkBridge) {
+                const response = await vkBridge.send('VKWebAppCallAPIMethod', {
+                    method: 'video.get',
+                    params: {
+                        videos: videoId,
+                        access_token: 'ТВОЙ_ТОКЕН', // получишь в VK Dev
+                        v: '5.131'
+                    }
+                });
+                
+                if (response.response && response.response.items[0]) {
+                    const video = response.response.items[0];
                     return {
-                        id: match[1],
-                        title: 'YouTube видео',
-                        type: 'youtube'
+                        id: video.player,
+                        title: video.title,
+                        type: 'vk'
                     };
                 }
             }
-
-            // VK Video парсинг (старый и новый формат)
-            const vkRegex = /(?:vk\.com|vkvideo\.ru)\/video(-?\d+_\d+)/;
-            const vkMatch = url.match(vkRegex);
             
-            if (vkMatch) {
-                console.log('✅ Найден VK ID:', vkMatch[1]);
-                return {
-                    id: vkMatch[1],
-                    title: 'VK видео',
-                    type: 'vk'
-                };
-            }
-
-            console.log('❌ Не распознан URL');
-            return null;
-        },
-
-        loadVKVideo: async (videoId) => {
-    try {
-        // Для VK Mini Apps используем VK Bridge
-        if (window.vkBridge) {
-            const response = await vkBridge.send('VKWebAppCallAPIMethod', {
-                method: 'video.get',
-                params: {
-                    videos: videoId,
-                    access_token: 'ТВОЙ_ТОКЕН', // получишь в VK Dev
-                    v: '5.131'
-                }
-            });
+            // Fallback на YouTube (как сейчас)
+            const demoVideos = {
+                '-205631275_456239152': 'jfKfPfyJRdk',
+                '-123456_789': 'dQw4w9WgXcQ',
+                '-987654_321': '5qap5aO4i9A'
+            };
             
-            if (response.response && response.response.items[0]) {
-                const video = response.response.items[0];
-                return {
-                    id: video.player,
-                    title: video.title,
-                    type: 'vk'
-                };
-            }
+            const youtubeId = demoVideos[videoId] || 'jfKfPfyJRdk';
+            return {
+                id: youtubeId,
+                title: 'VK видео',
+                type: 'youtube'
+            };
+            
+        } catch (error) {
+            console.error('VK Video API error:', error);
+            // Fallback на YouTube
+            return {
+                id: 'jfKfPfyJRdk',
+                title: 'VK видео (демо)',
+                type: 'youtube'
+            };
         }
-        
-        // Fallback на YouTube (как сейчас)
-        const demoVideos = {
-            '-205631275_456239152': 'jfKfPfyJRdk',
-            '-123456_789': 'dQw4w9WgXcQ',
-            '-987654_321': '5qap5aO4i9A'
-        };
-        
-        const youtubeId = demoVideos[videoId] || 'jfKfPfyJRdk';
-        return {
-            id: youtubeId,
-            title: 'VK видео',
-            type: 'youtube'
-        };
-        
-    } catch (error) {
-        console.error('VK Video API error:', error);
-        // Fallback на YouTube
-        return {
-            id: 'jfKfPfyJRdk',
-            title: 'VK видео (демо)',
-            type: 'youtube'
-        };
     }
-},
-    };
+};
 
-    /* ==========================================================================
-       UI UTILITIES
-       ========================================================================== */
-    const UI = {
-        toast: (msg, type = 'success') => {
-            const container = document.getElementById('toast-container');
-            const el = document.createElement('div');
-            
-            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
-            const colors = { success: 'green', error: 'red', info: 'blue' };
-            
-            el.className = `glass px-4 py-3 rounded-xl text-sm text-white shadow-lg border-l-4 border-${colors[type]}-500 flex items-center gap-2 fade-in`;
-            el.innerHTML = `<i class="fa-solid ${icons[type]} text-${colors[type]}-400"></i> ${msg}`;
-            container.appendChild(el);
-            
-            setTimeout(() => {
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 300);
-            }, 4000);
-        },
+/* ==========================================================================
+   UI UTILITIES
+   ========================================================================== */
+const UI = {
+    toast: (msg, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+        const colors = { success: 'green', error: 'red', info: 'blue' };
+        
+        el.className = `glass px-4 py-3 rounded-xl text-sm text-white shadow-lg border-l-4 border-${colors[type]}-500 flex items-center gap-2 fade-in`;
+        el.innerHTML = `<i class="fa-solid ${icons[type]} text-${colors[type]}-400"></i> ${msg}`;
+        container.appendChild(el);
+        
+        setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+        }, 4000);
+    },
 
-        updateConnectionStatus: (status) => {
-            const indicator = document.getElementById('connection-status');
-            indicator.className = `connection-status w-2 h-2 rounded-full ${status}`;
-        }
-    };
-
-    let controlsTimeout;
-    function resetControlsTimer() {
-        clearTimeout(controlsTimeout);
-        Player.showControls();
-        controlsTimeout = setTimeout(() => {
-            if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-                document.getElementById('controls-bar').classList.remove('controls-visible');
-                document.getElementById('controls-bar').classList.add('controls-hidden');
-            }
-        }, 3000);
+    updateConnectionStatus: (status) => {
+        const indicator = document.getElementById('connection-status');
+        indicator.className = `connection-status w-2 h-2 rounded-full ${status}`;
     }
+};
 
-    // Обработчики для мобильных устройств
-    document.getElementById('video-wrapper').addEventListener('mousemove', resetControlsTimer);
-    document.getElementById('video-wrapper').addEventListener('touchmove', resetControlsTimer);
-    document.getElementById('controls-bar').addEventListener('mousemove', resetControlsTimer);
-    document.getElementById('controls-bar').addEventListener('touchmove', resetControlsTimer);
+// ==========================================================================
+// ИНИЦИАЛИЗАЦИЯ И ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
+// ==========================================================================
 
-    // Предотвращение масштабирования на мобильных при двойном тапе
-    document.addEventListener('dblclick', (e) => {
-        if (window.innerWidth <= 768) {
-            e.preventDefault();
+let controlsTimeout;
+function resetControlsTimer() {
+    clearTimeout(controlsTimeout);
+    Player.showControls();
+    controlsTimeout = setTimeout(() => {
+        if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+            document.getElementById('controls-bar').classList.remove('controls-visible');
+            document.getElementById('controls-bar').classList.add('controls-hidden');
         }
-    });
+    }, 3000);
+}
 
-    // Закрытие сайдбара при клике на видео область на мобильных
-    document.getElementById('video-wrapper').addEventListener('click', () => {
-        if (window.innerWidth <= 768) {
-            document.getElementById('sidebar').classList.add('translate-x-full');
-        }
-    });
+// Обработчики для мобильных устройств
+document.getElementById('video-wrapper').addEventListener('mousemove', resetControlsTimer);
+document.getElementById('video-wrapper').addEventListener('touchmove', resetControlsTimer);
+document.getElementById('controls-bar').addEventListener('mousemove', resetControlsTimer);
+document.getElementById('controls-bar').addEventListener('touchmove', resetControlsTimer);
+
+// Предотвращение масштабирования на мобильных при двойном тапе
+document.addEventListener('dblclick', (e) => {
+    if (window.innerWidth <= 768) {
+        e.preventDefault();
+    }
+});
+
+// Закрытие сайдбара при клике на видео область на мобильных
+document.getElementById('video-wrapper').addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.add('translate-x-full');
+    }
+});
+
+// Глобальная инициализация YouTube API
+window.onYouTubeIframeAPIReady = function() {
+    console.log('🎬 YouTube API готов');
+};
+
+console.log('🎉 Vibeo полностью загружен со всеми функциями!');
 </script>
 </body>
 </html>
