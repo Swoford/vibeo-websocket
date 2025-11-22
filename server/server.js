@@ -19,33 +19,37 @@ const server = http.createServer((req, res) => {
     }
     
     // Обслуживаем index.html для всех маршрутов
-    if (req.url === '/' || req.url === '/index.html') {
-        const filePath = path.join(__dirname, '../client/index.html');
-        fs.readFile(filePath, (err, data) => {
-            if (err) {
-                console.error('❌ Ошибка чтения index.html:', err);
-                res.writeHead(404);
-                res.end('Not found');
-                return;
-            }
-            res.writeHead(200, {
-                'Content-Type': 'text/html',
-                'Cache-Control': 'no-cache'
-            });
-            res.end(data);
-        });
+    const filePath = path.join(__dirname, '../client/index.html');
+    
+    // Проверяем существование файла
+    if (!fs.existsSync(filePath)) {
+        console.error('❌ index.html не найден по пути:', filePath);
+        res.writeHead(404);
+        res.end('index.html not found');
         return;
     }
     
-    // Для всех остальных запросов - 404
-    res.writeHead(404);
-    res.end('Not found');
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            console.error('❌ Ошибка чтения index.html:', err);
+            res.writeHead(500);
+            res.end('Server error');
+            return;
+        }
+        
+        res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache'
+        });
+        res.end(data);
+        console.log('✅ index.html отправлен клиенту');
+    });
 });
 
-// WebSocket сервер (остальной код без изменений)
+// WebSocket сервер
 const wss = new WebSocket.Server({ 
     server,
-    path: '/ws' // Явно указываем путь
+    path: '/ws'
 });
 
 const rooms = new Map();
@@ -314,10 +318,6 @@ wss.on('connection', (ws, request) => {
         }
     });
 
-    ws.on('error', (error) => {
-        console.error(`❌ WebSocket ошибка для пользователя ${userId}:`, error);
-    });
-
     function handleMessage(message, ws) {
         switch (message.type) {
             case 'JOIN_ROOM':
@@ -441,7 +441,7 @@ wss.on('connection', (ws, request) => {
     }
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 HTTP + WebSocket сервер запущен на порту ${PORT}`);
     console.log(`🌐 Healthcheck: http://0.0.0.0:${PORT}/health`);
