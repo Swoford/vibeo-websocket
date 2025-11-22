@@ -36,160 +36,160 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-            /* Стили для ползунка прогресса видео */
-    #seek-slider {
-        -webkit-appearance: none;
-        width: 100%;
-        height: 6px;
-        border-radius: 3px;
-        background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--progress, 0%), #334155 var(--progress, 0%), #334155 100%);
-        cursor: pointer;
-        outline: none;
-    }
+        /* Стили для ползунка прогресса видео */
+        #seek-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--progress, 0%), #334155 var(--progress, 0%), #334155 100%);
+            cursor: pointer;
+            outline: none;
+        }
 
-    #seek-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 16px;
-        width: 16px;
-        border-radius: 50%;
-        background: #3b82f6;
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
+        #seek-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-    #seek-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        box-shadow: 0 0 12px rgba(59, 130, 246, 1);
-    }
+        #seek-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 1);
+        }
 
-    #seek-slider::-moz-range-track {
-        width: 100%;
-        height: 6px;
-        border-radius: 3px;
-        background: #334155;
-        border: none;
-    }
+        #seek-slider::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #334155;
+            border: none;
+        }
 
-    #seek-slider::-moz-range-progress {
-        background: #3b82f6;
-        height: 6px;
-        border-radius: 3px;
-    }
+        #seek-slider::-moz-range-progress {
+            background: #3b82f6;
+            height: 6px;
+            border-radius: 3px;
+        }
 
-    #seek-slider::-moz-range-thumb {
-        height: 16px;
-        width: 16px;
-        border-radius: 50%;
-        background: #3b82f6;
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
+        #seek-slider::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-    #seek-slider::-moz-range-thumb:hover {
-        transform: scale(1.2);
-    }
+        #seek-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
 
-    /* Стили для ползунка громкости */
-    #volume-slider {
-        -webkit-appearance: none;
-        width: 100%;
-        height: 4px;
-        border-radius: 2px;
-        background: linear-gradient(to right, #10b981 0%, #10b981 var(--volume, 100%), #334155 var(--volume, 100%), #334155 100%);
-        cursor: pointer;
-        outline: none;
-    }
+        /* Стили для ползунка громкости */
+        #volume-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(to right, #10b981 0%, #10b981 var(--volume, 100%), #334155 var(--volume, 100%), #334155 100%);
+            cursor: pointer;
+            outline: none;
+        }
 
-    #volume-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 14px;
-        width: 14px;
-        border-radius: 50%;
-        background: #10b981;
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
+        #volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-    #volume-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        box-shadow: 0 0 10px rgba(16, 185, 129, 1);
-    }
+        #volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 1);
+        }
 
-    #volume-slider::-moz-range-track {
-        width: 100%;
-        height: 4px;
-        border-radius: 2px;
-        background: #334155;
-        border: none;
-    }
+        #volume-slider::-moz-range-track {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #334155;
+            border: none;
+        }
 
-    #volume-slider::-moz-range-progress {
-        background: #10b981;
-        height: 4px;
-        border-radius: 2px;
-    }
+        #volume-slider::-moz-range-progress {
+            background: #10b981;
+            height: 4px;
+            border-radius: 2px;
+        }
 
-    #volume-slider::-moz-range-thumb {
-        height: 14px;
-        width: 14px;
-        border-radius: 50%;
-        background: #10b981;
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
+        #volume-slider::-moz-range-thumb {
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-    #volume-slider::-moz-range-thumb:hover {
-        transform: scale(1.2);
-    }
+        #volume-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
 
-    /* Общие стили для всех ползунков */
-    input[type=range] {
-        cursor: pointer;
-    }
-        
-.msg-bubble {
-    max-width: 85%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    word-wrap: break-word;
-    overflow-wrap: anywhere;
-    word-break: normal;
-    white-space: normal;
-    hyphens: auto;
-    display: block;
-    width: fit-content;
-    max-width: 100%;
-}
+        /* Общие стили для всех ползунков */
+        input[type=range] {
+            cursor: pointer;
+        }
+            
+        .msg-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            white-space: normal;
+            hyphens: auto;
+            display: block;
+            width: fit-content;
+            max-width: 100%;
+        }
 
-/* Для своих сообщений - выравнивание по правому краю */
-.flex.justify-end .msg-bubble {
-    margin-left: auto;
-}
+        /* Для своих сообщений - выравнивание по правому краю */
+        .flex.justify-end .msg-bubble {
+            margin-left: auto;
+        }
 
-/* Для сообщений других - выравнивание по левому краю */
-.flex.justify-start .msg-bubble {
-    margin-right: auto;
-}
+        /* Для сообщений других - выравнивание по левому краю */
+        .flex.justify-start .msg-bubble {
+            margin-right: auto;
+        }
 
-/* Мобильные стили */
-@media (max-width: 768px) {
-    .msg-bubble {
-        max-width: 90%;
-        padding: 8px 12px;
-        font-size: 0.9rem;
-        overflow-wrap: break-word;
-    }
-}
+        /* Мобильные стили */
+        @media (max-width: 768px) {
+            .msg-bubble {
+                max-width: 90%;
+                padding: 8px 12px;
+                font-size: 0.9rem;
+                overflow-wrap: break-word;
+            }
+        }
 
         #player-container {
             position: relative;
@@ -288,7 +288,7 @@
             border-color: rgba(255, 255, 255, 0.5);
         }
 
-                .reaction-picker {
+        .reaction-picker {
             position: fixed;
             background: #1e293b;
             border: 1px solid #475569;
@@ -382,51 +382,54 @@
         .mobile-scroll {
             -webkit-overflow-scrolling: touch;
         }
+        
         /* Скрываем ползунок для участников */
-.participant-slider {
-    pointer-events: none;
-    opacity: 0.7;
-}
+        .participant-slider {
+            pointer-events: none;
+            opacity: 0.7;
+        }
 
-/* Показываем нормально для хоста */
-.host-slider {
-    pointer-events: auto;
-    opacity: 1;
-}
-/* Стили для кнопки удаления */
-.delete-message-btn {
-    opacity: 0;
-    transition: all 0.2s ease;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 6px;
-    padding: 4px 6px;
-    font-size: 10px;
-    cursor: pointer;
-}
+        /* Показываем нормально для хоста */
+        .host-slider {
+            pointer-events: auto;
+            opacity: 1;
+        }
+        
+        /* Стили для кнопки удаления */
+        .delete-message-btn {
+            opacity: 0;
+            transition: all 0.2s ease;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 10px;
+            cursor: pointer;
+        }
 
-.group:hover .delete-message-btn {
-    opacity: 1;
-}
+        .group:hover .delete-message-btn {
+            opacity: 1;
+        }
 
-.delete-message-btn:hover {
-    background: rgba(239, 68, 68, 0.2);
-    transform: scale(1.1);
-}
+        .delete-message-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.1);
+        }
 
-/* Анимация удаления сообщения */
-.message-deleting {
-    opacity: 0;
-    transform: translateX(-20px);
-    transition: all 0.3s ease;
-}
+        /* Анимация удаления сообщения */
+        .message-deleting {
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s ease;
+        }
     </style>
-<!-- Добавь перед закрывающим </head> -->
-<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-<script>
-  // Инициализация VK Bridge
-  vkBridge.send('VKWebAppInit', {});
-</script>
+
+    <!-- VK Bridge -->
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <script>
+        // Инициализация VK Bridge
+        vkBridge.send('VKWebAppInit', {});
+    </script>
 </head>
 
 <body class="h-screen flex flex-col bg-[#0b1120] no-select">
@@ -456,7 +459,7 @@
                 <input id="room-code-input" type="text" placeholder="Оставьте пустым для создания новой" class="w-full bg-slate-800/50 border border-slate-600/50 rounded-xl px-4 py-3.5 mt-1 focus:outline-none focus:border-blue-500 focus:bg-slate-800 text-white placeholder-slate-500 transition-all">
             </div>
 
-            <button onclick="App.joinRoom()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all transform active:scale-[0.98] touch-manipulation">
+            <button id="join-room-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all transform active:scale-[0.98] touch-manipulation">
                 Присоединиться к просмотру
             </button>
         </div>
@@ -483,7 +486,7 @@
                 <div class="flex items-center gap-2 bg-slate-800/50 rounded-full pl-3 pr-1 py-1 border border-slate-700/50">
                     <span id="connection-status" class="connection-status w-2 h-2 rounded-full disconnected"></span>
                     <span id="room-code" class="text-xs font-mono text-slate-300 tracking-wider">----</span>
-                    <button onclick="App.copyRoomCode()" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors ml-1 touch-manipulation" title="Копировать код">
+                    <button id="copy-room-code-btn" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors ml-1 touch-manipulation" title="Копировать код">
                         <i class="fa-regular fa-copy text-xs"></i>
                     </button>
                 </div>
@@ -495,10 +498,10 @@
                     <span id="current-user-name" class="text-sm font-medium text-slate-300">Гость</span>
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">U</div>
                 </div>
-                <button onclick="App.leaveRoom()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-900/30 hover:text-red-400 text-slate-400 flex items-center justify-center transition-all touch-manipulation">
+                <button id="leave-room-btn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-900/30 hover:text-red-400 text-slate-400 flex items-center justify-center transition-all touch-manipulation">
                     <i class="fa-solid fa-door-open"></i>
                 </button>
-                <button onclick="App.toggleSidebar()" class="md:hidden w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center touch-manipulation">
+                <button id="toggle-sidebar-btn" class="md:hidden w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center touch-manipulation">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
@@ -513,7 +516,7 @@
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-2">Добавьте видео</h2>
                 <p class="text-slate-400 mb-6 max-w-md mx-auto">Выберите видео через панель справа чтобы начать совместный просмотр</p>
-                <button onclick="App.focusSearch()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-medium transition-all shadow-lg shadow-blue-600/20 touch-manipulation">
+                <button id="focus-search-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-medium transition-all shadow-lg shadow-blue-600/20 touch-manipulation">
                     Выбрать видео
                 </button>
             </div>
@@ -530,7 +533,7 @@
                 </div>
             </div>
             
-            <div id="video-overlay" class="absolute inset-0 z-10 cursor-pointer touch-manipulation" onclick="Player.togglePlay()"></div>
+            <div id="video-overlay" class="absolute inset-0 z-10 cursor-pointer touch-manipulation"></div>
         </div>
 
         <!-- Controls -->
@@ -538,25 +541,23 @@
             <div class="w-full flex items-center gap-3 group">
                  <span id="time-current" class="text-xs font-mono text-slate-400 w-10 text-right">0:00</span>
                  <input id="seek-slider" type="range" min="0" max="100" value="0" step="0.1" 
-       class="flex-grow h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer touch-manipulation"
-       oninput="Player.onSeekInput(this.value)" 
-       onchange="Player.onSeekChange(this.value)">
+       class="flex-grow h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer touch-manipulation">
                  <span id="time-total" class="text-xs font-mono text-slate-400 w-10">0:00</span>
             </div>
 
             <div class="flex items-center justify-between mt-1">
                 <div class="flex items-center gap-4">
-                    <button onclick="Player.togglePlay()" id="play-btn" class="w-10 h-10 bg-white hover:bg-blue-50 text-black rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95 touch-manipulation">
+                    <button id="play-btn" class="w-10 h-10 bg-white hover:bg-blue-50 text-black rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95 touch-manipulation">
                         <i class="fa-solid fa-play ml-1"></i>
                     </button>
-                    <button onclick="Player.requestSync()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1 touch-manipulation" title="Синхронизировать">
+                    <button id="sync-btn" class="text-slate-400 hover:text-white text-xs flex items-center gap-1 touch-manipulation" title="Синхронизировать">
                         <i class="fa-solid fa-rotate"></i> <span class="hidden sm:inline">Синхр.</span>
                     </button>
                 </div>
                 
                 <div class="flex items-center gap-3">
                      <i class="fa-solid fa-volume-high text-slate-400 text-xs"></i>
-                     <input id="volume-slider" type="range" min="0" max="100" value="100" class="w-24 h-1 bg-slate-700 rounded-lg touch-manipulation" oninput="Player.setVolume(this.value)">
+                     <input id="volume-slider" type="range" min="0" max="100" value="100" class="w-24 h-1 bg-slate-700 rounded-lg touch-manipulation">
                 </div>
             </div>
         </div>
@@ -567,9 +568,9 @@
         
         <!-- Tabs -->
         <div class="flex border-b border-slate-800 bg-[#0b1120]">
-            <button onclick="App.switchTab('chat')" id="tab-chat-btn" class="flex-1 py-4 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-colors bg-slate-800/30 touch-manipulation">Чат</button>
-            <button onclick="App.switchTab('search')" id="tab-search-btn" class="flex-1 py-4 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors touch-manipulation">Видео</button>
-            <button onclick="App.switchTab('users')" id="tab-users-btn" class="flex-1 py-4 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors touch-manipulation">Участники</button>
+            <button id="tab-chat-btn" class="flex-1 py-4 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-colors bg-slate-800/30 touch-manipulation">Чат</button>
+            <button id="tab-search-btn" class="flex-1 py-4 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors touch-manipulation">Видео</button>
+            <button id="tab-users-btn" class="flex-1 py-4 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors touch-manipulation">Участники</button>
         </div>
 
         <!-- CHAT TAB -->
@@ -580,7 +581,7 @@
                 </div>
             </div>
 
-            <form onsubmit="Chat.sendMessage(event)" class="absolute bottom-0 left-0 right-0 p-4 bg-[#0f172a] border-t border-slate-800">
+            <form id="chat-form" class="absolute bottom-0 left-0 right-0 p-4 bg-[#0f172a] border-t border-slate-800">
                 <div class="relative">
                     <input id="chat-input" type="text" placeholder="Написать сообщение..." autocomplete="off" class="w-full bg-slate-800 text-white rounded-full pl-5 pr-12 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-slate-500 border border-slate-700 transition-all">
                     <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-500 transition-colors touch-manipulation">
@@ -605,7 +606,7 @@
                             class="flex-1 bg-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-700 transition-all"
                         >
                         <button 
-                            onclick="VideoLoader.loadFromUrl()" 
+                            id="load-video-btn"
                             class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 touch-manipulation"
                         >
                             <i class="fa-solid fa-play"></i>
@@ -620,7 +621,7 @@
                     <label class="block text-sm font-medium text-slate-300 mb-2">🚀 Быстрые примеры</label>
                     <div class="grid grid-cols-1 gap-2">
                         <button 
-                            onclick="VideoLoader.loadExample('youtube')" 
+                            id="youtube-example-btn"
                             class="text-left bg-slate-800 hover:bg-slate-700 text-slate-300 p-3 rounded-lg border border-slate-700 transition-colors touch-manipulation"
                         >
                             <div class="flex items-center gap-3">
@@ -634,7 +635,7 @@
                             </div>
                         </button>
                         <button 
-                            onclick="VideoLoader.loadExample('vk')" 
+                            id="vk-example-btn"
                             class="text-left bg-slate-800 hover:bg-slate-700 text-slate-300 p-3 rounded-lg border border-slate-700 transition-colors touch-manipulation"
                         >
                             <div class="flex items-center gap-3">
@@ -692,13 +693,13 @@
             <div class="mt-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700">
                 <h4 class="text-sm font-medium text-slate-200 mb-2">Пригласить друзей</h4>
                 <p class="text-xs text-slate-400 mb-3">Поделитесь кодом комнаты</p>
-                <button onclick="App.copyRoomCode()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors touch-manipulation">
+                <button id="copy-invite-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors touch-manipulation">
                     <i class="fa-regular fa-copy mr-2"></i>Скопировать код
                 </button>
             </div>
         </div>
         
-        <button onclick="App.toggleSidebar()" class="md:hidden absolute top-4 right-4 w-8 h-8 bg-slate-800 rounded-full text-white z-50 shadow-lg touch-manipulation">
+        <button id="close-sidebar-btn" class="md:hidden absolute top-4 right-4 w-8 h-8 bg-slate-800 rounded-full text-white z-50 shadow-lg touch-manipulation">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
@@ -709,9 +710,20 @@
 
 <script>
 // ==========================================================================
-// ФИКС ДЛЯ RAILWAY - ИНИЦИАЛИЗАЦИЯ ГЛОБАЛЬНЫХ ОБЪЕКТОВ
+// VIBEO - СОВМЕСТНЫЙ ПРОСМОТР ВИДЕО
 // ==========================================================================
-window.State = {
+
+// Глобальные переменные
+let ytPlayer = null;
+let progressInterval = null;
+let lastPlaybackUpdate = 0;
+let controlsTimeout;
+let ws = null;
+
+/* ==========================================================================
+   STATE MANAGEMENT
+   ========================================================================== */
+const State = {
     user: null,
     room: null,
     users: [],
@@ -719,27 +731,6 @@ window.State = {
     playbackState: { playing: false, time: 0 },
     isHost: false
 };
-
-window.App = {
-    joinRoom: function() {
-        console.log('App.joinRoom вызван - объекты загружаются...');
-    }
-};
-
-window.Player = {};
-window.Chat = {};
-window.VideoLoader = {};
-window.Users = {};
-window.UI = {};
-window.WSClient = {};
-
-console.log('✅ Глобальные объекты инициализированы');
-</script>
-
-<script>
-// ==========================================================================
-// ОСНОВНОЙ КОД VIBEO С ВСЕМИ ФИШКАМИ
-// ==========================================================================
 
 /* ==========================================================================
    WEBSOCKET CLIENT
@@ -1083,10 +1074,6 @@ const App = {
 /* ==========================================================================
    PLAYER CONTROLLER
    ========================================================================== */
-let ytPlayer = null;
-let progressInterval = null;
-let lastPlaybackUpdate = 0;
-
 const Player = {
     init: () => {
         if (window.YT && window.YT.Player) {
@@ -1483,9 +1470,17 @@ const Users = {
                     <div class="text-xs text-slate-500">${user.isHost ? 'Создатель комнаты' : 'Участник'}</div>
                 </div>
                 ${isCurrentUser ? '<span class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded">Вы</span>' : ''}
-                ${canTransfer ? '<button class="transfer-host-btn" onclick="Users.transferHost(\'' + user.id + '\')" title="Передать права">👑 Передать</button>' : ''}
+                ${canTransfer ? '<button class="transfer-host-btn" data-user-id="${user.id}" title="Передать права">👑 Передать</button>' : ''}
             `;
             list.appendChild(li);
+        });
+
+        // Добавляем обработчики для кнопок передачи прав
+        document.querySelectorAll('.transfer-host-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                Users.transferHost(userId);
+            });
         });
     }
 };
@@ -1495,7 +1490,7 @@ const Users = {
    ========================================================================== */
 const Chat = {
     sendMessage: (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (!text) return;
@@ -1562,9 +1557,7 @@ const Chat = {
         
         // Кнопка удаления (только для своих сообщений или для хоста)
         const deleteButton = canDelete ? 
-            `<button class="delete-message-btn opacity-0 transition-opacity text-xs text-slate-400 hover:text-red-400 ml-2" 
-                    onclick="Chat.deleteMessage('${message.id}')"
-                    title="${State.isHost ? 'Удалить сообщение' : 'Удалить свое сообщение'}">
+            `<button class="delete-message-btn" data-message-id="${message.id}" title="${State.isHost ? 'Удалить сообщение' : 'Удалить свое сообщение'}">
                 <i class="fa-solid fa-trash"></i>
             </button>` : '';
 
@@ -1641,6 +1634,12 @@ const Chat = {
         messageElement.querySelector('.add-reaction-btn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             Chat.showReactionPicker(e.target, messageId);
+        });
+
+        // Обработчик для кнопки удаления
+        messageElement.querySelector('.delete-message-btn')?.addEventListener('click', function() {
+            const messageId = this.getAttribute('data-message-id');
+            Chat.deleteMessage(messageId);
         });
     },
 
@@ -1853,7 +1852,7 @@ const VideoLoader = {
                     method: 'video.get',
                     params: {
                         videos: videoId,
-                        access_token: 'ТВОЙ_ТОКЕН', // получишь в VK Dev
+                        access_token: 'ТВОЙ_ТОКЕН',
                         v: '5.131'
                     }
                 });
@@ -1868,7 +1867,7 @@ const VideoLoader = {
                 }
             }
             
-            // Fallback на YouTube (как сейчас)
+            // Fallback на YouTube
             const demoVideos = {
                 '-205631275_456239152': 'jfKfPfyJRdk',
                 '-123456_789': 'dQw4w9WgXcQ',
@@ -1884,7 +1883,6 @@ const VideoLoader = {
             
         } catch (error) {
             console.error('VK Video API error:', error);
-            // Fallback на YouTube
             return {
                 id: 'jfKfPfyJRdk',
                 title: 'VK видео (демо)',
@@ -1922,10 +1920,58 @@ const UI = {
 };
 
 // ==========================================================================
-// ИНИЦИАЛИЗАЦИЯ И ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
+// ИНИЦИАЛИЗАЦИЯ ОБРАБОТЧИКОВ СОБЫТИЙ
 // ==========================================================================
 
-let controlsTimeout;
+function initializeEventListeners() {
+    console.log('🔄 Инициализация обработчиков событий...');
+    
+    // Основные кнопки приложения
+    document.getElementById('join-room-btn')?.addEventListener('click', () => App.joinRoom());
+    document.getElementById('copy-room-code-btn')?.addEventListener('click', () => App.copyRoomCode());
+    document.getElementById('copy-invite-btn')?.addEventListener('click', () => App.copyRoomCode());
+    document.getElementById('leave-room-btn')?.addEventListener('click', () => App.leaveRoom());
+    document.getElementById('toggle-sidebar-btn')?.addEventListener('click', () => App.toggleSidebar());
+    document.getElementById('close-sidebar-btn')?.addEventListener('click', () => App.toggleSidebar());
+    document.getElementById('focus-search-btn')?.addEventListener('click', () => App.focusSearch());
+    
+    // Табы
+    document.getElementById('tab-chat-btn')?.addEventListener('click', () => App.switchTab('chat'));
+    document.getElementById('tab-search-btn')?.addEventListener('click', () => App.switchTab('search'));
+    document.getElementById('tab-users-btn')?.addEventListener('click', () => App.switchTab('users'));
+    
+    // Кнопки плеера
+    document.getElementById('play-btn')?.addEventListener('click', () => Player.togglePlay());
+    document.getElementById('sync-btn')?.addEventListener('click', () => Player.requestSync());
+    document.getElementById('video-overlay')?.addEventListener('click', () => Player.togglePlay());
+    
+    // Ползунки
+    const seekSlider = document.getElementById('seek-slider');
+    if (seekSlider) {
+        seekSlider.addEventListener('input', (e) => Player.onSeekInput(e.target.value));
+        seekSlider.addEventListener('change', (e) => Player.onSeekChange(e.target.value));
+    }
+    
+    const volumeSlider = document.getElementById('volume-slider');
+    if (volumeSlider) {
+        volumeSlider.addEventListener('input', (e) => Player.setVolume(e.target.value));
+    }
+    
+    // Видео
+    document.getElementById('load-video-btn')?.addEventListener('click', () => VideoLoader.loadFromUrl());
+    document.getElementById('youtube-example-btn')?.addEventListener('click', () => VideoLoader.loadExample('youtube'));
+    document.getElementById('vk-example-btn')?.addEventListener('click', () => VideoLoader.loadExample('vk'));
+    
+    // Чат
+    document.getElementById('chat-form')?.addEventListener('submit', (e) => Chat.sendMessage(e));
+    
+    console.log('✅ Все обработчики событий инициализированы');
+}
+
+// ==========================================================================
+// УПРАВЛЕНИЕ КОНТРОЛЛАМИ ВИДЕО
+// ==========================================================================
+
 function resetControlsTimer() {
     clearTimeout(controlsTimeout);
     Player.showControls();
@@ -1937,32 +1983,43 @@ function resetControlsTimer() {
     }, 3000);
 }
 
-// Обработчики для мобильных устройств
-document.getElementById('video-wrapper').addEventListener('mousemove', resetControlsTimer);
-document.getElementById('video-wrapper').addEventListener('touchmove', resetControlsTimer);
-document.getElementById('controls-bar').addEventListener('mousemove', resetControlsTimer);
-document.getElementById('controls-bar').addEventListener('touchmove', resetControlsTimer);
+// Обработчики для показа контроллов
+document.getElementById('video-wrapper')?.addEventListener('mousemove', resetControlsTimer);
+document.getElementById('video-wrapper')?.addEventListener('touchmove', resetControlsTimer);
+document.getElementById('controls-bar')?.addEventListener('mousemove', resetControlsTimer);
+document.getElementById('controls-bar')?.addEventListener('touchmove', resetControlsTimer);
 
-// Предотвращение масштабирования на мобильных при двойном тапе
+// Предотвращение масштабирования на мобильных
 document.addEventListener('dblclick', (e) => {
     if (window.innerWidth <= 768) {
         e.preventDefault();
     }
 });
 
-// Закрытие сайдбара при клике на видео область на мобильных
-document.getElementById('video-wrapper').addEventListener('click', () => {
+// Закрытие сайдбара на мобильных
+document.getElementById('video-wrapper')?.addEventListener('click', () => {
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.add('translate-x-full');
     }
 });
+
+// ==========================================================================
+// ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+// ==========================================================================
 
 // Глобальная инициализация YouTube API
 window.onYouTubeIframeAPIReady = function() {
     console.log('🎬 YouTube API готов');
 };
 
-console.log('🎉 Vibeo полностью загружен со всеми функциями!');
+// Инициализация при загрузке DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEventListeners);
+} else {
+    initializeEventListeners();
+}
+
+console.log('🎉 Vibeo полностью загружен и готов к работе!');
 </script>
 </body>
 </html>
