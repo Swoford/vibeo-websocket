@@ -346,6 +346,46 @@ const server = http.createServer(async (req, res) => {
         console.log(`[${requestId}] ❤️ Healthcheck - ${Date.now() - startTime}ms`);
         return;
     }
+
+    // В обработчике запросов после healthcheck добавьте:
+if (req.url === '/youtube-iframe-api') {
+    console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
+    
+    https.get('https://www.youtube.com/iframe_api', (youtubeRes) => {
+        let data = '';
+        youtubeRes.on('data', (chunk) => {
+            data += chunk;
+        });
+        youtubeRes.on('end', () => {
+            // Отдаем JavaScript
+            res.writeHead(200, {
+                'Content-Type': 'text/javascript',
+                'Cache-Control': 'public, max-age=3600'
+            });
+            res.end(data);
+        });
+    }).on('error', (err) => {
+        console.error(`[${requestId}] ❌ YouTube API ошибка:`, err.message);
+        // Отдаем простую заглушку
+        res.writeHead(200, {
+            'Content-Type': 'text/javascript',
+            'Cache-Control': 'no-cache'
+        });
+        res.end(`
+            console.log('YouTube API прокси недоступен');
+            // Минимальный YT объект
+            window.YT = window.YT || {};
+            window.YT.PlayerState = {
+                UNSTARTED: -1, ENDED: 0, PLAYING: 1, 
+                PAUSED: 2, BUFFERING: 3, CUED: 5
+            };
+            if (typeof window.onYouTubeIframeAPIReady === 'function') {
+                setTimeout(window.onYouTubeIframeAPIReady, 100);
+            }
+        `);
+    });
+    return;
+}
     
     // Специальный эндпоинт для проверки VK
     if (req.url === '/vk-check' || req.url === '/vk/test') {
