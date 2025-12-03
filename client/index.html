@@ -2140,10 +2140,9 @@ window.onYouTubeIframeAPIReady = function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM загружен, инициализируем приложение...');
     
-    // Инициализируем обработчики событий
-    initializeEventListeners();
+    // ТЕПЕРЬ ЗДЕСЬ НЕТ ВЫЗОВА initializeEventListeners()
     
-    // Также инициализируем VK Bridge если доступен
+    // Просто инициализируем VK Bridge если доступен
     if (typeof vkBridge !== 'undefined') {
         console.log('✅ VK Bridge обнаружен');
         vkBridge.send('VKWebAppInit', {})
