@@ -7,6 +7,48 @@ const path = require('path');
 // Создаем HTTP сервер
 const server = http.createServer((req, res) => {
     console.log(`📄 HTTP запрос: ${req.method} ${req.url}`);
+    // В server.js после создания http сервера
+const https = require('https');
+
+// Прокси для YouTube API
+server.on('request', (req, res) => {
+    // Прокси для iframe_api
+    if (req.url === '/youtube-iframe-api') {
+        console.log('📡 Проксирование YouTube API...');
+        
+        https.get('https://www.youtube.com/iframe_api', (youtubeRes) => {
+            res.writeHead(youtubeRes.statusCode, {
+                'Content-Type': 'text/javascript',
+                'Cache-Control': 'public, max-age=86400'
+            });
+            youtubeRes.pipe(res);
+        }).on('error', (err) => {
+            console.error('YouTube API прокси ошибка:', err);
+            res.writeHead(500);
+            res.end('Error loading YouTube API');
+        });
+        return;
+    }
+    
+    // Прокси для player_api
+    if (req.url === '/youtube-player-api') {
+        console.log('📡 Проксирование YouTube Player API...');
+        
+        const videoId = req.url.split('?v=')[1] || '';
+        https.get(`https://www.youtube.com/s/player/${videoId}/player_ias.vflset/ru_RU/base.js`, (youtubeRes) => {
+            res.writeHead(youtubeRes.statusCode, {
+                'Content-Type': 'text/javascript',
+                'Cache-Control': 'public, max-age=86400'
+            });
+            youtubeRes.pipe(res);
+        }).on('error', (err) => {
+            console.error('YouTube Player API ошибка:', err);
+            res.writeHead(500);
+            res.end('Error loading YouTube Player API');
+        });
+        return;
+    }
+});
     
     // Healthcheck для Railway
     if (req.url === '/health') {
