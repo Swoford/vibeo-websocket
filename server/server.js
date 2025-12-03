@@ -209,104 +209,6 @@ package.json
 // Кэш для проксированных ресурсов
 const cache = new Map();
 
-// Проксирование YouTube API
-if (req.url === '/youtube-iframe-api' || req.url === '/iframe_api') {
-    console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
-    
-    const youtubeUrl = 'https://www.youtube.com/iframe_api';
-    
-    https.get(youtubeUrl, (youtubeRes) => {
-        console.log(`[${requestId}] ✅ YouTube API получен, статус: ${youtubeRes.statusCode}`);
-        
-        let data = '';
-        youtubeRes.on('data', (chunk) => {
-            data += chunk;
-        });
-        
-        youtubeRes.on('end', () => {
-            console.log(`[${requestId}] ✅ YouTube API загружен, размер: ${data.length} байт`);
-            
-            res.writeHead(200, {
-                'Content-Type': 'text/javascript; charset=utf-8',
-                'Cache-Control': 'public, max-age=86400',
-                'Content-Length': Buffer.byteLength(data, 'utf8')
-            });
-            
-            res.end(data);
-        });
-    }).on('error', (err) => {
-        console.error(`[${requestId}] ❌ Ошибка загрузки YouTube API:`, err.message);
-        
-        // Простая заглушка YouTube API
-        const fallbackApi = `
-            console.log('📹 Используется fallback YouTube API');
-            window.YT = window.YT || {};
-            window.YT.PlayerState = {
-                UNSTARTED: -1,
-                ENDED: 0,
-                PLAYING: 1,
-                PAUSED: 2,
-                BUFFERING: 3,
-                CUED: 5
-            };
-            
-            window.YT.Player = class MockPlayer {
-                constructor(elementId, options) {
-                    console.log('🎬 Mock YouTube Player создан для', elementId);
-                    this.videoId = options.videoId;
-                    this.events = options.events || {};
-                    
-                    setTimeout(() => {
-                        if (this.events.onReady) {
-                            this.events.onReady({ target: this });
-                        }
-                    }, 100);
-                }
-                
-                loadVideoById(videoId) {
-                    console.log('🎬 Mock: Загружаю видео', videoId);
-                    this.videoId = videoId;
-                    return this;
-                }
-                
-                playVideo() { 
-                    console.log('▶️ Mock: Воспроизведение');
-                    return this; 
-                }
-                
-                pauseVideo() { 
-                    console.log('⏸️ Mock: Пауза');
-                    return this; 
-                }
-                
-                seekTo(seconds) { 
-                    console.log('⏩ Mock: Перемотка к', seconds + 's');
-                    return this; 
-                }
-                
-                getCurrentTime() { return 0; }
-                getDuration() { return 100; }
-                getPlayerState() { return window.YT.PlayerState.PAUSED; }
-                setVolume(volume) { console.log('🔊 Mock: Громкость', volume + '%'); }
-            };
-            
-            // Вызываем callback если он определен
-            if (typeof window.onYouTubeIframeAPIReady === 'function') {
-                setTimeout(window.onYouTubeIframeAPIReady, 150);
-            }
-        `;
-        
-        res.writeHead(200, {
-            'Content-Type': 'text/javascript; charset=utf-8',
-            'Cache-Control': 'public, max-age=3600',
-            'Content-Length': Buffer.byteLength(fallbackApi, 'utf8')
-        });
-        
-        res.end(fallbackApi);
-    });
-    return;
-}
-
 // Создаем HTTP сервер
 const server = http.createServer(async (req, res) => {
     const startTime = Date.now();
@@ -391,45 +293,103 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // В обработчике запросов после healthcheck добавьте:
-if (req.url === '/youtube-iframe-api') {
-    console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
-    
-    https.get('https://www.youtube.com/iframe_api', (youtubeRes) => {
-        let data = '';
-        youtubeRes.on('data', (chunk) => {
-            data += chunk;
-        });
-        youtubeRes.on('end', () => {
-            // Отдаем JavaScript
-            res.writeHead(200, {
-                'Content-Type': 'text/javascript',
-                'Cache-Control': 'public, max-age=3600'
+    // Проксирование YouTube iframe API
+    if (req.url === '/youtube-iframe-api' || req.url === '/iframe_api') {
+        console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
+        
+        const youtubeUrl = 'https://www.youtube.com/iframe_api';
+        
+        https.get(youtubeUrl, (youtubeRes) => {
+            console.log(`[${requestId}] ✅ YouTube API получен, статус: ${youtubeRes.statusCode}`);
+            
+            let data = '';
+            youtubeRes.on('data', (chunk) => {
+                data += chunk;
             });
-            res.end(data);
+            
+            youtubeRes.on('end', () => {
+                console.log(`[${requestId}] ✅ YouTube API загружен, размер: ${data.length} байт`);
+                
+                res.writeHead(200, {
+                    'Content-Type': 'text/javascript; charset=utf-8',
+                    'Cache-Control': 'public, max-age=86400',
+                    'Content-Length': Buffer.byteLength(data, 'utf8')
+                });
+                
+                res.end(data);
+            });
+        }).on('error', (err) => {
+            console.error(`[${requestId}] ❌ Ошибка загрузки YouTube API:`, err.message);
+            
+            // Простая заглушка YouTube API
+            const fallbackApi = `
+                console.log('📹 Используется fallback YouTube API');
+                window.YT = window.YT || {};
+                window.YT.PlayerState = {
+                    UNSTARTED: -1,
+                    ENDED: 0,
+                    PLAYING: 1,
+                    PAUSED: 2,
+                    BUFFERING: 3,
+                    CUED: 5
+                };
+                
+                window.YT.Player = class MockPlayer {
+                    constructor(elementId, options) {
+                        console.log('🎬 Mock YouTube Player создан для', elementId);
+                        this.videoId = options.videoId;
+                        this.events = options.events || {};
+                        
+                        setTimeout(() => {
+                            if (this.events.onReady) {
+                                this.events.onReady({ target: this });
+                            }
+                        }, 100);
+                    }
+                    
+                    loadVideoById(videoId) {
+                        console.log('🎬 Mock: Загружаю видео', videoId);
+                        this.videoId = videoId;
+                        return this;
+                    }
+                    
+                    playVideo() { 
+                        console.log('▶️ Mock: Воспроизведение');
+                        return this; 
+                    }
+                    
+                    pauseVideo() { 
+                        console.log('⏸️ Mock: Пауза');
+                        return this; 
+                    }
+                    
+                    seekTo(seconds) { 
+                        console.log('⏩ Mock: Перемотка к', seconds + 's');
+                        return this; 
+                    }
+                    
+                    getCurrentTime() { return 0; }
+                    getDuration() { return 100; }
+                    getPlayerState() { return window.YT.PlayerState.PAUSED; }
+                    setVolume(volume) { console.log('🔊 Mock: Громкость', volume + '%'); }
+                };
+                
+                // Вызываем callback если он определен
+                if (typeof window.onYouTubeIframeAPIReady === 'function') {
+                    setTimeout(window.onYouTubeIframeAPIReady, 150);
+                }
+            `;
+            
+            res.writeHead(200, {
+                'Content-Type': 'text/javascript; charset=utf-8',
+                'Cache-Control': 'public, max-age=3600',
+                'Content-Length': Buffer.byteLength(fallbackApi, 'utf8')
+            });
+            
+            res.end(fallbackApi);
         });
-    }).on('error', (err) => {
-        console.error(`[${requestId}] ❌ YouTube API ошибка:`, err.message);
-        // Отдаем простую заглушку
-        res.writeHead(200, {
-            'Content-Type': 'text/javascript',
-            'Cache-Control': 'no-cache'
-        });
-        res.end(`
-            console.log('YouTube API прокси недоступен');
-            // Минимальный YT объект
-            window.YT = window.YT || {};
-            window.YT.PlayerState = {
-                UNSTARTED: -1, ENDED: 0, PLAYING: 1, 
-                PAUSED: 2, BUFFERING: 3, CUED: 5
-            };
-            if (typeof window.onYouTubeIframeAPIReady === 'function') {
-                setTimeout(window.onYouTubeIframeAPIReady, 100);
-            }
-        `);
-    });
-    return;
-}
+        return;
+    }
     
     // Специальный эндпоинт для проверки VK
     if (req.url === '/vk-check' || req.url === '/vk/test') {
@@ -486,45 +446,6 @@ if (req.url === '/youtube-iframe-api') {
         res.end();
         return;
     }
-    
-    // Проксирование YouTube API
-if (req.url === '/youtube-iframe-api' || req.url === '/iframe_api') {
-    console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
-    
-    https.get('https://www.youtube.com/iframe_api', (youtubeRes) => {
-        res.writeHead(youtubeRes.statusCode, {
-            'Content-Type': 'text/javascript',
-            'Cache-Control': 'public, max-age=86400'
-        });
-        youtubeRes.pipe(res);
-    }).on('error', (err) => {
-        console.error(`[${requestId}] ❌ YouTube API ошибка:`, err.message);
-        // Отдаем заглушку вместо ошибки
-        res.writeHead(200, {
-            'Content-Type': 'text/javascript',
-            'Cache-Control': 'public, max-age=3600'
-        });
-        res.end(`
-            console.log('YouTube API недоступен, используется заглушка');
-            window.YT = window.YT || {};
-            window.YT.Player = class MockPlayer {
-                constructor() { console.log('Mock YouTube Player создан'); }
-                loadVideoById(id) { console.log('Mock: Загрузка видео', id); }
-                playVideo() { console.log('Mock: Воспроизведение'); }
-                pauseVideo() { console.log('Mock: Пауза'); }
-                seekTo(time) { console.log('Mock: Перемотка к', time); }
-                getCurrentTime() { return 0; }
-                getDuration() { return 0; }
-                getPlayerState() { return -1; }
-                setVolume() {}
-            };
-            if (window.onYouTubeIframeAPIReady) {
-                setTimeout(() => window.onYouTubeIframeAPIReady(), 100);
-            }
-        `);
-    });
-    return;
-}
     
     // Обслуживаем статические файлы
     let filePath = req.url === '/' ? '/index.html' : req.url;
@@ -643,7 +564,7 @@ if (req.url === '/youtube-iframe-api' || req.url === '/iframe_api') {
     });
 });
 
-// WebSocket сервер (остается без изменений)
+// WebSocket сервер
 const wss = new WebSocket.Server({ 
     server,
     path: '/ws',
@@ -663,12 +584,6 @@ const wss = new WebSocket.Server({
         threshold: 1024
     }
 });
-
-// [ОСТАВШАЯСЯ ЧАСТЬ КОДА С WebSocket ЛОГИКОЙ ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ]
-// ============================================================
-// ВСТАВЬТЕ СЮДА ВЕСЬ ВАШ WebSocket КОД ИЗ ПРЕДЫДУЩЕЙ ВЕРСИИ
-// (class Room, generateRoomCode, getOrCreateRoom, wss.on('connection'), etc.)
-// ============================================================
 
 const rooms = new Map();
 
