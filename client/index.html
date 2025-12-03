@@ -435,11 +435,12 @@
 <!-- ФИКС для YouTube API -->
 <script>
 // ФИКС: Упрощенная загрузка YouTube API
+// Заменяем ваш текущий loadYouTubeAPI() на этот вариант:
 function loadYouTubeAPI() {
     return new Promise((resolve) => {
         console.log('🔄 Инициализация YouTube системы...');
         
-        // Сначала создаем заглушку YT объекта чтобы не было ошибок
+        // Создаем заглушку YT объекта
         window.YT = window.YT || {
             PlayerState: {
                 UNSTARTED: -1,
@@ -448,57 +449,65 @@ function loadYouTubeAPI() {
                 PAUSED: 2,
                 BUFFERING: 3,
                 CUED: 5
-            },
-            Player: class MockPlayer {
-                constructor(elementId, options) {
-                    console.log('🎬 Создан mock YouTube плеер');
-                    this.elementId = elementId;
-                    this.videoId = options.videoId;
-                    this.events = options.events || {};
-                    
-                    // Автоматически вызываем onReady
-                    setTimeout(() => {
-                        if (this.events.onReady) {
-                            this.events.onReady({ target: this });
-                        }
-                    }, 100);
-                }
-                
-                loadVideoById(videoId) {
-                    console.log('🎬 Mock: Загрузка видео', videoId);
-                    this.videoId = videoId;
-                    return this;
-                }
-                
-                playVideo() { 
-                    console.log('▶️ Mock: Воспроизведение');
-                    return this; 
-                }
-                
-                pauseVideo() { 
-                    console.log('⏸️ Mock: Пауза');
-                    return this; 
-                }
-                
-                seekTo(seconds) { 
-                    console.log('⏩ Mock: Перемотка к', seconds);
-                    return this; 
-                }
-                
-                getCurrentTime() { return 0; }
-                getDuration() { return 100; }
-                getPlayerState() { return window.YT.PlayerState.PAUSED; }
-                setVolume(volume) { console.log('🔊 Mock: Громкость', volume); }
             }
         };
         
-        // Пытаемся загрузить реальный YouTube API в фоне
+        // Проверяем, если API уже загружен
+        if (window.YT && window.YT.Player) {
+            console.log('✅ YouTube API уже загружен');
+            resolve();
+            return;
+        }
+        
+        // Создаем заглушку для Player
+        window.YT.Player = window.YT.Player || class MockPlayer {
+            constructor(elementId, options) {
+                console.log('🎬 Создан mock YouTube плеер');
+                this.elementId = elementId;
+                this.videoId = options.videoId;
+                this.events = options.events || {};
+                
+                // Автоматически вызываем onReady
+                setTimeout(() => {
+                    if (this.events.onReady) {
+                        this.events.onReady({ target: this });
+                    }
+                }, 100);
+            }
+            
+            loadVideoById(videoId) {
+                console.log('🎬 Mock: Загрузка видео', videoId);
+                this.videoId = videoId;
+                return this;
+            }
+            
+            playVideo() { 
+                console.log('▶️ Mock: Воспроизведение');
+                return this; 
+            }
+            
+            pauseVideo() { 
+                console.log('⏸️ Mock: Пауза');
+                return this; 
+            }
+            
+            seekTo(seconds) { 
+                console.log('⏩ Mock: Перемотка к', seconds);
+                return this; 
+            }
+            
+            getCurrentTime() { return 0; }
+            getDuration() { return 100; }
+            getPlayerState() { return window.YT.PlayerState.PAUSED; }
+            setVolume(volume) { console.log('🔊 Mock: Громкость', volume); }
+        };
+        
+        // Пытаемся загрузить реальный YouTube API
         const tag = document.createElement('script');
-        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.src = '/youtube-iframe-api'; // Используем прокси через ваш сервер
         tag.async = true;
         tag.defer = true;
         
-        // Если загрузится реальный API - заменит нашу заглушку
         window.onYouTubeIframeAPIReady = function() {
             console.log('✅ Настоящий YouTube API загружен!');
             resolve();
@@ -517,13 +526,13 @@ function loadYouTubeAPI() {
         
         document.head.appendChild(tag);
         
-        // Таймаут - если не загрузится за 2 секунды, используем заглушку
+        // Таймаут
         setTimeout(() => {
             if (!window.YT || !window.YT.Player) {
                 console.log('⏰ Таймаут - используем mock API');
                 tag.onerror();
             }
-        }, 2000);
+        }, 3000);
     });
 }
 
