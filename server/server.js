@@ -404,18 +404,43 @@ const server = http.createServer(async (req, res) => {
     }
     
     // Проксирование YouTube API
-    if (req.url === '/youtube-iframe-api' || 
-        req.url === '/iframe_api' ||
-        req.url === '/s/player/api_player' ||
-        req.url.startsWith('/s/player/') ||
-        req.url.includes('www-widgetapi') ||
-        req.url.includes('youtubei/v1/') ||
-        req.url.includes('/yts/jsbin/')) {
-        
-        await proxyYouTubeResource(req.url, res);
-        console.log(`[${requestId}] 📹 YouTube прокси завершено - ${Date.now() - startTime}ms`);
-        return;
-    }
+if (req.url === '/youtube-iframe-api' || req.url === '/iframe_api') {
+    console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
+    
+    https.get('https://www.youtube.com/iframe_api', (youtubeRes) => {
+        res.writeHead(youtubeRes.statusCode, {
+            'Content-Type': 'text/javascript',
+            'Cache-Control': 'public, max-age=86400'
+        });
+        youtubeRes.pipe(res);
+    }).on('error', (err) => {
+        console.error(`[${requestId}] ❌ YouTube API ошибка:`, err.message);
+        // Отдаем заглушку вместо ошибки
+        res.writeHead(200, {
+            'Content-Type': 'text/javascript',
+            'Cache-Control': 'public, max-age=3600'
+        });
+        res.end(`
+            console.log('YouTube API недоступен, используется заглушка');
+            window.YT = window.YT || {};
+            window.YT.Player = class MockPlayer {
+                constructor() { console.log('Mock YouTube Player создан'); }
+                loadVideoById(id) { console.log('Mock: Загрузка видео', id); }
+                playVideo() { console.log('Mock: Воспроизведение'); }
+                pauseVideo() { console.log('Mock: Пауза'); }
+                seekTo(time) { console.log('Mock: Перемотка к', time); }
+                getCurrentTime() { return 0; }
+                getDuration() { return 0; }
+                getPlayerState() { return -1; }
+                setVolume() {}
+            };
+            if (window.onYouTubeIframeAPIReady) {
+                setTimeout(() => window.onYouTubeIframeAPIReady(), 100);
+            }
+        `);
+    });
+    return;
+}
     
     // Обслуживаем статические файлы
     let filePath = req.url === '/' ? '/index.html' : req.url;
