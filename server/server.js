@@ -9,7 +9,7 @@ const https = require('https');
 const CLIENT_PATH = path.join(__dirname, '..', 'client');
 const ROOT_PATH = path.join(__dirname, '..');
 
-console.log('🚀 Запуск Vibeo сервера...');
+console.log('🚀 Запуск Vibeo сервера для VK Mini Apps...');
 console.log('📁 Текущая директория:', __dirname);
 console.log('📁 Корневая директория:', ROOT_PATH);
 console.log('📁 Путь к client папке:', CLIENT_PATH);
@@ -51,47 +51,156 @@ if (!indexHtmlContent) {
         body {
             background: #0f172a;
             color: white;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             text-align: center;
-            padding: 50px;
+            padding: 40px 20px;
             margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .container {
             max-width: 600px;
-            margin: 0 auto;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
         h1 {
             color: #3b82f6;
             margin-bottom: 20px;
+            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
         }
         .status {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-        .success {
-            color: #10b981;
+            background: linear-gradient(135deg, #10b981, #0ea5e9);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
         .error {
-            color: #ef4444;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 1rem;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: block;
+            text-align: left;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border-left: 4px solid #3b82f6;
+        }
+        .button {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+        }
+        .vk-badge {
+            background: #0077FF;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
         }
     </style>
+    <!-- VK Bridge для VK Mini Apps -->
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>🎬 Vibeo</h1>
         <div class="status">
-            <p class="success">✅ Сервер работает!</p>
-            <p class="error">⚠️ Но index.html не найден в ожидаемом месте</p>
+            ✅ Сервер работает корректно!
+        </div>
+        
+        <div class="vk-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93V15.07C2 20.67 3.33 22 8.93 22H15.07C20.67 22 22 20.67 22 15.07V8.93C22 3.33 20.67 2 15.07 2M18.15 16.27H16.69C16.14 16.27 15.97 15.82 15 14.83C14.12 14 13.74 13.88 13.53 13.88C13.24 13.88 13.15 13.96 13.15 14.38V15.69C13.15 16.04 13.04 16.26 12.11 16.26C10.57 16.26 8.86 15.32 7.66 13.59C5.85 11.05 5.36 9.13 5.36 8.75C5.36 8.54 5.43 8.34 5.85 8.34H7.32C7.69 8.34 7.83 8.5 7.97 8.9C8.69 10.96 10.38 13.09 11.53 13.09C11.8 13.09 11.87 13 11.87 12.66V10.84C11.87 9.5 12.01 9.41 12.41 9.41C12.71 9.41 13.18 9.53 14.54 10.94C16.01 12.57 16.3 13.08 17.08 13.08H18.56C19 13.08 19.13 13.35 18.96 13.69C18.68 14.22 17.64 15.26 16.64 16.04C16.24 16.35 15.98 16.5 15.89 16.66C15.79 16.83 15.86 17 16.12 17H18.15C18.56 17 18.7 17.18 18.7 17.41C18.7 17.76 18.3 18.31 17.63 18.95C16.8 19.74 16.19 20 15.87 20C15.62 20 15.5 19.88 15.5 19.52V18.77C15.5 17.82 15.38 17.73 14.64 17.18C13.75 16.5 12.61 15.47 11.2 13.93C9.92 12.55 9.22 11.76 8.95 11.38C8.68 11 8.76 10.8 8.95 10.56C9.06 10.43 9.27 10.2 9.46 10C10.67 8.74 11.5 7.71 12.08 6.92C12.46 6.41 12.86 6 13.45 6H14.93C15.23 6 15.36 6.16 15.45 6.45C15.55 6.79 16.06 7.87 16.63 8.92C17.14 9.84 17.55 10.42 17.73 10.42C17.86 10.42 17.93 10.32 17.93 10.05V8.93C17.93 8.5 18.05 8.34 18.44 8.34H19.93C20.28 8.34 20.41 8.55 20.28 8.9C20.07 9.42 19.03 10.67 17.63 12.04C16.99 12.65 16.57 13 16.45 13.15C16.33 13.3 16.37 13.42 16.54 13.42C17.21 13.42 18.53 12.38 19.63 11.21C20.36 10.42 21.03 9.66 21.07 9.41C21.11 9.16 20.99 9 20.64 9H19.17C18.81 9 18.69 9.11 18.57 9.38C18.43 9.68 17.77 10.65 16.93 11.58C16.36 12.21 16.06 12.42 15.98 12.42C15.86 12.42 15.79 12.33 15.79 11.95V11.25C15.79 9.85 16.32 9.72 16.53 9.72C16.68 9.72 16.9 9.79 17.32 10.19C17.77 10.61 19.08 12.11 20.26 13.53C21.14 14.56 21.8 15.36 21.86 15.57C21.93 15.84 21.8 16 21.43 16H19.93Z"/>
+            </svg>
+            VK Mini App
+        </div>
+        
+        <p>Совместный просмотр видео с друзьями в реальном времени</p>
+        
+        <div class="error">
+            ⚠️ Но index.html не найден в ожидаемом месте
             <p>Пожалуйста, проверьте структуру файлов:</p>
-            <pre style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px;">
+            <code>
 /client/
   index.html  ← должен быть здесь
 /server/
   server.js   ← этот файл
-package.json</pre>
+package.json
+            </code>
         </div>
+        
+        <a href="https://vk.com/apps?act=manage" target="_blank" class="button">
+            Настроить в VK
+        </a>
+        
+        <script>
+            // Инициализация VK Bridge
+            if (typeof vkBridge !== 'undefined') {
+                console.log('✅ VK Bridge обнаружен');
+                vkBridge.send('VKWebAppInit', {})
+                    .then(data => {
+                        console.log('VK Mini App инициализирован:', data);
+                        document.querySelector('.vk-badge').innerHTML += ' ✅';
+                    })
+                    .catch(err => {
+                        console.error('VK ошибка инициализации:', err);
+                        document.querySelector('.vk-badge').innerHTML += ' ❌';
+                    });
+            } else {
+                console.log('ℹ️ Запущено не в VK Mini App');
+            }
+            
+            // Отправляем статус родительскому окну если запущено в iframe
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'VK_APP_STATUS',
+                    status: 'ready',
+                    url: window.location.href,
+                    timestamp: Date.now()
+                }, '*');
+            }
+        </script>
     </div>
 </body>
 </html>`;
@@ -102,7 +211,7 @@ const cache = new Map();
 
 // Проксирование YouTube API
 async function proxyYouTubeResource(reqUrl, res) {
-    console.log(`📡 Проксирование: ${reqUrl}`);
+    console.log(`📡 Проксирование YouTube: ${reqUrl}`);
     
     const targetUrl = `https://www.youtube.com${reqUrl}`;
     
@@ -148,94 +257,163 @@ async function proxyYouTubeResource(reqUrl, res) {
         }).on('error', (err) => {
             console.error(`❌ Ошибка проксирования ${reqUrl}:`, err.message);
             res.writeHead(500);
-            res.end('Error loading resource');
+            res.end('Error loading YouTube resource');
             resolve();
         });
     });
 }
 
+// Создаем HTTP сервер
 const server = http.createServer(async (req, res) => {
     const startTime = Date.now();
-    console.log(`\n📄 ${req.method} ${req.url}`);
+    const requestId = Math.random().toString(36).substr(2, 9);
     
-    // === ВАЖНО: Заголовки для VK Mini Apps ===
-    // Разрешаем загрузку в iframe от VK
-    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' vk.com *.vk.com vk.ru *.vk.ru https://vk.com https://*.vk.com https://vk.ru https://*.vk.ru;");
+    console.log(`\n[${requestId}] 📄 ${req.method} ${req.url}`);
+    console.log(`[${requestId}] 👤 User-Agent: ${req.headers['user-agent']?.substring(0, 80)}...`);
+    console.log(`[${requestId}] 🌐 Referer: ${req.headers.referer || 'none'}`);
     
-    // Старый стандарт для iframe (для старых браузеров)
+    // === КРИТИЧЕСКИ ВАЖНО: Заголовки для VK Mini Apps ===
+    // 1. Разрешаем загрузку в iframe от VK (самое важное!)
+    res.setHeader('Content-Security-Policy', 
+        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+        "frame-ancestors vk.com *.vk.com vk.ru *.vk.ru 'self'; " +
+        "script-src * 'unsafe-inline' 'unsafe-eval' blob:; " +
+        "style-src * 'unsafe-inline'; " +
+        "connect-src *; " +
+        "img-src * data: blob:; " +
+        "media-src *; " +
+        "font-src * data:;"
+    );
+    
+    // 2. Старый стандарт для iframe (для совместимости)
     res.setHeader('X-Frame-Options', 'ALLOW-FROM https://vk.com');
     
-    // CORS заголовки
+    // 3. CORS заголовки (очень важны для VK)
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-VK-*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Expose-Headers', '*');
+    res.setHeader('Access-Control-Max-Age', '86400');
     
-    // Дополнительные заголовки безопасности
+    // 4. Дополнительные заголовки для VK
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+    res.setHeader('X-VK-Apps-Allowed', 'true');
     
-    // Обрабатываем OPTIONS запросы для CORS (предзапросы)
+    // 5. Обрабатываем OPTIONS запросы для CORS (предзапросы от VK)
     if (req.method === 'OPTIONS') {
-        console.log('🔄 Обработка CORS preflight запроса');
-        res.writeHead(200);
+        console.log(`[${requestId}] 🔄 Обработка CORS preflight запроса от VK`);
+        res.writeHead(200, {
+            'Content-Length': '0'
+        });
+        res.end();
+        console.log(`[${requestId}] ✅ CORS preflight отправлен - ${Date.now() - startTime}ms`);
+        return;
+    }
+    
+    // === Обработка специальных маршрутов для VK ===
+    
+    // Редирект с vercel.app на railway.app (если есть старые ссылки)
+    if (req.headers.host && req.headers.host.includes('vercel.app')) {
+        console.log(`[${requestId}] 🔄 Перенаправление с ${req.headers.host} на railway.app`);
+        res.writeHead(301, {
+            'Location': `https://vibeo-websocket-production.up.railway.app${req.url}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
         res.end();
         return;
     }
     
-    // Healthcheck для Railway
-    if (req.url === '/health' || req.url === '/ping') {
+    // Healthcheck для Railway и VK
+    if (req.url === '/health' || req.url === '/ping' || req.url === '/status') {
         res.writeHead(200, { 
-            'Content-Type': 'text/plain',
+            'Content-Type': 'application/json',
             'Cache-Control': 'no-cache'
         });
-        res.end('Vibeo Server is Running!');
-        console.log(`✅ Healthcheck - ${Date.now() - startTime}ms`);
+        res.end(JSON.stringify({ 
+            status: 'ok',
+            service: 'Vibeo',
+            version: '1.0.0',
+            vk_mini_app: true,
+            server_time: new Date().toISOString(),
+            uptime: process.uptime(),
+            request_id: requestId
+        }));
+        console.log(`[${requestId}] ❤️ Healthcheck - ${Date.now() - startTime}ms`);
         return;
     }
-    // После healthcheck, добавьте:
-if (req.url === '/vk_check') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-        status: 'ok', 
-        message: 'VK Mini App работает',
-        timestamp: Date.now()
-    }));
-    return;
-}
-
-if (req.url === '/vk_config') {
-    res.writeHead(200, { 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
-    });
-    res.end(JSON.stringify({
-        app_id: process.env.VK_APP_ID || 'test_app',
-        app_name: 'Vibeo',
-        app_version: '1.0.0',
-        platform: 'web',
-        features: ['video', 'chat', 'rooms'],
-        supported_apis: ['VKWebAppInit', 'VKWebAppGetUserInfo']
-    }));
-    return;
-}
+    
+    // Специальный эндпоинт для проверки VK
+    if (req.url === '/vk-check' || req.url === '/vk/test') {
+        res.writeHead(200, { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+        });
+        res.end(JSON.stringify({
+            vk_mini_app: true,
+            iframe_allowed: true,
+            cors_enabled: true,
+            server: 'vibeo-websocket-production.up.railway.app',
+            timestamp: Date.now(),
+            request_id: requestId,
+            headers_received: {
+                origin: req.headers.origin,
+                referer: req.headers.referer,
+                'user-agent': req.headers['user-agent']?.substring(0, 50)
+            }
+        }));
+        console.log(`[${requestId}] ✅ VK check отправлен - ${Date.now() - startTime}ms`);
+        return;
+    }
+    
+    // Эндпоинт для получения конфигурации VK
+    if (req.url === '/vk-config') {
+        res.writeHead(200, { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, max-age=0'
+        });
+        res.end(JSON.stringify({
+            app_id: process.env.VK_APP_ID || 'vibeo_app',
+            app_name: 'Vibeo - Совместный просмотр',
+            app_version: '1.0.0',
+            platform: 'web_mobile',
+            api_version: '5.199',
+            features: ['video', 'chat', 'rooms', 'reactions'],
+            permissions: ['friends', 'video', 'messages'],
+            supported_methods: ['VKWebAppInit', 'VKWebAppGetUserInfo', 'VKWebAppGetAuthToken'],
+            iframe_config: {
+                sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups',
+                allow: 'camera *; microphone *'
+            }
+        }));
+        console.log(`[${requestId}] ⚙️ VK config отправлен - ${Date.now() - startTime}ms`);
+        return;
+    }
+    
+    // Favicon
+    if (req.url === '/favicon.ico') {
+        res.writeHead(204, {
+            'Content-Length': '0'
+        });
+        res.end();
+        return;
+    }
     
     // Проксирование YouTube API
     if (req.url === '/youtube-iframe-api' || 
         req.url === '/iframe_api' ||
         req.url === '/s/player/api_player' ||
         req.url.startsWith('/s/player/') ||
-        req.url.includes('www-widgetapi')) {
+        req.url.includes('www-widgetapi') ||
+        req.url.includes('youtubei/v1/') ||
+        req.url.includes('/yts/jsbin/')) {
         
         await proxyYouTubeResource(req.url, res);
-        console.log(`✅ Прокси завершено - ${Date.now() - startTime}ms`);
-        return;
-    }
-    
-    // Проксирование для других YouTube ресурсов
-    if (req.url.includes('youtube.com') || req.url.includes('youtubei')) {
-        await proxyYouTubeResource(req.url, res);
-        console.log(`✅ YouTube прокси завершено - ${Date.now() - startTime}ms`);
+        console.log(`[${requestId}] 📹 YouTube прокси завершено - ${Date.now() - startTime}ms`);
         return;
     }
     
@@ -244,8 +422,9 @@ if (req.url === '/vk_config') {
     filePath = filePath.split('?')[0]; // Убираем query параметры
     
     // Защита от path traversal атак
-    if (filePath.includes('..')) {
-        res.writeHead(403);
+    if (filePath.includes('..') || filePath.includes('//')) {
+        console.log(`[${requestId}] ⚠️ Попытка path traversal: ${filePath}`);
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
         res.end('Forbidden');
         return;
     }
@@ -278,19 +457,30 @@ if (req.url === '/vk_config') {
                 }
             }
         } catch (err) {
-            // Игнорируем ошибки, продолжаем поиск
+            console.log(`[${requestId}] ⚠️ Ошибка проверки пути ${p}:`, err.message);
         }
     }
     
-    // Если файл не найден или это директория без index.html, отдаем главную страницу
+    // Если файл не найден или это директория без index.html, отдаем главную страницу (SPA)
     if (!foundPath || isDirectory) {
-        console.log(`📄 Отдаю index.html (${filePath} не найден)`);
+        console.log(`[${requestId}] 📄 Отдаю index.html (${filePath} не найден или директория)`);
+        
+        // Добавляем VK Bridge в index.html если его нет
+        let finalHtml = indexHtmlContent;
+        if (!finalHtml.includes('vk-bridge') && !finalHtml.includes('@vkontakte/vk-bridge')) {
+            finalHtml = finalHtml.replace('</head>', 
+                '<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>\n</head>'
+            );
+        }
+        
         res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-cache, no-store, must-revalidate'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'X-VK-App-Status': 'serving_spa',
+            'Content-Length': Buffer.byteLength(finalHtml, 'utf8')
         });
-        res.end(indexHtmlContent);
-        console.log(`✅ HTML отправлен - ${Date.now() - startTime}ms`);
+        res.end(finalHtml);
+        console.log(`[${requestId}] ✅ SPA отправлено - ${Date.now() - startTime}ms`);
         return;
     }
     
@@ -310,7 +500,16 @@ if (req.url === '/vk_config') {
         '.ico': 'image/x-icon',
         '.txt': 'text/plain',
         '.pdf': 'application/pdf',
-        '.zip': 'application/zip'
+        '.zip': 'application/zip',
+        '.mp4': 'video/mp4',
+        '.webm': 'video/webm',
+        '.mp3': 'audio/mpeg',
+        '.wav': 'audio/wav',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'font/ttf',
+        '.eot': 'application/vnd.ms-fontobject',
+        '.otf': 'font/otf'
     };
     
     const contentType = mimeTypes[ext] || 'application/octet-stream';
@@ -318,22 +517,24 @@ if (req.url === '/vk_config') {
     // Читаем и отдаем файл
     fs.readFile(foundPath, (err, data) => {
         if (err) {
-            console.error('❌ Ошибка чтения файла:', err.message);
-            res.writeHead(500);
+            console.error(`[${requestId}] ❌ Ошибка чтения файла ${foundPath}:`, err.message);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
             res.end('Server Error');
             return;
         }
         
         res.writeHead(200, {
             'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=3600'
+            'Cache-Control': ext === '.html' ? 'no-cache, no-store, must-revalidate' : 'public, max-age=3600',
+            'Content-Length': data.length,
+            'X-VK-App-File': path.basename(foundPath)
         });
         res.end(data);
-        console.log(`✅ Файл отправлен: ${foundPath} - ${Date.now() - startTime}ms`);
+        console.log(`[${requestId}] ✅ Файл отправлен: ${path.basename(foundPath)} - ${Date.now() - startTime}ms`);
     });
 });
 
-// WebSocket сервер
+// WebSocket сервер (остается без изменений)
 const wss = new WebSocket.Server({ 
     server,
     path: '/ws',
@@ -353,6 +554,12 @@ const wss = new WebSocket.Server({
         threshold: 1024
     }
 });
+
+// [ОСТАВШАЯСЯ ЧАСТЬ КОДА С WebSocket ЛОГИКОЙ ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ]
+// ============================================================
+// ВСТАВЬТЕ СЮДА ВЕСЬ ВАШ WebSocket КОД ИЗ ПРЕДЫДУЩЕЙ ВЕРСИИ
+// (class Room, generateRoomCode, getOrCreateRoom, wss.on('connection'), etc.)
+// ============================================================
 
 const rooms = new Map();
 
@@ -476,7 +683,6 @@ class Room {
     addChatMessage(message) {
         this.chatMessages.set(message.id, message);
         
-        // Ограничиваем историю сообщений
         if (this.chatMessages.size > 100) {
             const firstKey = this.chatMessages.keys().next().value;
             this.chatMessages.delete(firstKey);
@@ -592,8 +798,7 @@ class Room {
         });
     }
     
-    // Очистка неактивных пользователей
-    cleanupInactiveUsers(timeout = 300000) { // 5 минут
+    cleanupInactiveUsers(timeout = 300000) {
         const now = Date.now();
         this.users.forEach((user, userId) => {
             if (now - user.lastActive > timeout) {
@@ -611,9 +816,8 @@ function generateRoomCode() {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     
-    // Проверяем, не существует ли уже такой комнаты
     if (rooms.has(result)) {
-        return generateRoomCode(); // Рекурсивно генерируем новый код
+        return generateRoomCode();
     }
     
     return result;
@@ -630,17 +834,13 @@ function getOrCreateRoom(roomCode, userId, isHost = false) {
     return rooms.get(roomCode);
 }
 
-// Очистка неактивных комнат и пользователей
 setInterval(() => {
     const now = Date.now();
     let cleanedRooms = 0;
-    let cleanedUsers = 0;
     
     for (const [code, room] of rooms.entries()) {
-        // Очищаем неактивных пользователей в комнате
         room.cleanupInactiveUsers();
         
-        // Удаляем комнату, если пустая или очень старая (24 часа)
         if (room.users.size === 0 || (now - room.createdAt > 86400000)) {
             rooms.delete(code);
             cleanedRooms++;
@@ -648,12 +848,11 @@ setInterval(() => {
         }
     }
     
-    if (cleanedRooms > 0 || cleanedUsers > 0) {
+    if (cleanedRooms > 0) {
         console.log(`🧹 Очистка: удалено ${cleanedRooms} комнат`);
     }
-}, 60000); // Каждую минуту
+}, 60000);
 
-// Обработка WebSocket соединений
 wss.on('connection', (ws, request) => {
     console.log('🔌 Новое WebSocket соединение');
     
@@ -667,15 +866,14 @@ wss.on('connection', (ws, request) => {
 
     console.log(`👤 Подключение: ID=${userId}, комната=${roomCode || 'новая'}, IP=${userIp}`);
 
-    // Отправляем подтверждение подключения
     ws.send(JSON.stringify({
         type: 'CONNECTED',
         message: 'Успешно подключено к серверу',
         userId: userId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        vk_app: request.headers.origin?.includes('vk.com') || false
     }));
 
-    // Обработка ping/pong для поддержания соединения
     ws.isAlive = true;
     ws.on('pong', () => {
         ws.isAlive = true;
@@ -685,7 +883,6 @@ wss.on('connection', (ws, request) => {
         try {
             const message = JSON.parse(data);
             
-            // Логируем только не heartbeat сообщения
             if (message.type !== 'PING') {
                 console.log(`📨 ${currentUser?.name || 'unknown'}: ${message.type}`);
             }
@@ -709,7 +906,6 @@ wss.on('connection', (ws, request) => {
     });
 
     function handleMessage(message, ws) {
-        // Обновляем активность пользователя
         if (currentUser && currentRoom) {
             const user = currentRoom.users.get(currentUser.id);
             if (user) {
@@ -719,7 +915,6 @@ wss.on('connection', (ws, request) => {
         
         switch (message.type) {
             case 'PING':
-                // Heartbeat
                 ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
                 break;
                 
@@ -814,7 +1009,7 @@ wss.on('connection', (ws, request) => {
             currentRoom = room;
             currentUser = {
                 id: message.user.id,
-                name: message.user.name.substring(0, 30) // Ограничиваем длину имени
+                name: message.user.name.substring(0, 30)
             };
             
             room.addUser(message.user.id, currentUser, ws);
@@ -848,7 +1043,6 @@ wss.on('connection', (ws, request) => {
     }
 });
 
-// Heartbeat для WebSocket соединений
 setInterval(() => {
     wss.clients.forEach((ws) => {
         if (ws.isAlive === false) {
@@ -863,28 +1057,34 @@ setInterval(() => {
             // Игнорируем ошибки ping
         }
     });
-}, 30000); // Каждые 30 секунд
+}, 30000);
 
 // Запуск сервера
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(50));
-    console.log('🚀 Vibeo сервер успешно запущен!');
-    console.log('='.repeat(50));
+    console.log('\n' + '='.repeat(60));
+    console.log('🚀 Vibeo сервер для VK Mini Apps успешно запущен!');
+    console.log('='.repeat(60));
     console.log(`📡 Порт: ${PORT}`);
     console.log(`🌐 HTTP: http://0.0.0.0:${PORT}`);
     console.log(`🔗 WebSocket: ws://0.0.0.0:${PORT}/ws`);
     console.log(`❤️  Healthcheck: http://0.0.0.0:${PORT}/health`);
+    console.log(`🔍 VK проверка: http://0.0.0.0:${PORT}/vk-check`);
     console.log(`📹 YouTube прокси: http://0.0.0.0:${PORT}/youtube-iframe-api`);
     console.log(`📁 Обслуживается из: ${indexHtmlPath || 'в памяти'}`);
-    console.log('='.repeat(50) + '\n');
+    console.log('='.repeat(60));
+    console.log('\n🔧 Для настройки VK Mini App:');
+    console.log('1. Перейдите в https://dev.vk.com/mini-apps/dev');
+    console.log('2. В настройках приложения укажите URL:');
+    console.log(`   🔗 https://vibeo-websocket-production.up.railway.app/`);
+    console.log('3. Включите "Доверенный iframe"');
+    console.log('4. Добавьте домен *.railway.app в разрешенные');
+    console.log('='.repeat(60) + '\n');
 });
 
-// Обработка graceful shutdown
 process.on('SIGINT', () => {
     console.log('\n🔻 Получен SIGINT, завершаю работу...');
     
-    // Закрываем все WebSocket соединения
     wss.clients.forEach((client) => {
         client.close();
     });
@@ -896,7 +1096,6 @@ process.on('SIGINT', () => {
         });
     });
     
-    // Таймаут на случай если закрытие затянется
     setTimeout(() => {
         console.log('⚠️ Принудительное завершение');
         process.exit(1);
@@ -909,7 +1108,6 @@ process.on('SIGTERM', () => {
     server.close();
 });
 
-// Обработка ошибок
 server.on('error', (error) => {
     console.error('❌ Ошибка сервера:', error.message);
     if (error.code === 'EADDRINUSE') {
