@@ -434,13 +434,12 @@
 
 <!-- ФИКС для YouTube API -->
 <script>
-// ФИКС: Упрощенная загрузка YouTube API
-// Заменяем ваш текущий loadYouTubeAPI() на этот вариант:
+// Упрощенная загрузка YouTube API
 function loadYouTubeAPI() {
     return new Promise((resolve) => {
-        console.log('🔄 Инициализация YouTube системы...');
+        console.log('🔄 Загрузка YouTube API...');
         
-        // Создаем заглушку YT объекта
+        // Сначала создаем заглушку
         window.YT = window.YT || {
             PlayerState: {
                 UNSTARTED: -1,
@@ -452,70 +451,75 @@ function loadYouTubeAPI() {
             }
         };
         
-        // Проверяем, если API уже загружен
+        // Если API уже загружен
         if (window.YT && window.YT.Player) {
             console.log('✅ YouTube API уже загружен');
             resolve();
             return;
         }
         
-        // Создаем заглушку для Player
-        window.YT.Player = window.YT.Player || class MockPlayer {
-            constructor(elementId, options) {
-                console.log('🎬 Создан mock YouTube плеер');
-                this.elementId = elementId;
-                this.videoId = options.videoId;
-                this.events = options.events || {};
-                
-                // Автоматически вызываем onReady
-                setTimeout(() => {
-                    if (this.events.onReady) {
-                        this.events.onReady({ target: this });
-                    }
-                }, 100);
-            }
-            
-            loadVideoById(videoId) {
-                console.log('🎬 Mock: Загрузка видео', videoId);
-                this.videoId = videoId;
-                return this;
-            }
-            
-            playVideo() { 
-                console.log('▶️ Mock: Воспроизведение');
-                return this; 
-            }
-            
-            pauseVideo() { 
-                console.log('⏸️ Mock: Пауза');
-                return this; 
-            }
-            
-            seekTo(seconds) { 
-                console.log('⏩ Mock: Перемотка к', seconds);
-                return this; 
-            }
-            
-            getCurrentTime() { return 0; }
-            getDuration() { return 100; }
-            getPlayerState() { return window.YT.PlayerState.PAUSED; }
-            setVolume(volume) { console.log('🔊 Mock: Громкость', volume); }
-        };
+        // Загружаем через наш прокси
+        const script = document.createElement('script');
+        script.src = '/youtube-iframe-api';
+        script.async = true;
+        script.defer = true;
         
-        // Пытаемся загрузить реальный YouTube API
-        const tag = document.createElement('script');
-        tag.src = '/youtube-iframe-api'; // Используем прокси через ваш сервер
-        tag.async = true;
-        tag.defer = true;
-        
+        // Глобальный callback для YouTube API
         window.onYouTubeIframeAPIReady = function() {
-            console.log('✅ Настоящий YouTube API загружен!');
+            console.log('✅ YouTube API готов!');
             resolve();
         };
         
-        tag.onerror = () => {
-            console.log('⚠️ YouTube API недоступен, используем заглушку');
-            // Вызываем callback для заглушки
+        script.onload = () => {
+            console.log('📹 Скрипт YouTube API загружен');
+        };
+        
+        script.onerror = () => {
+            console.log('⚠️ Не удалось загрузить YouTube API, используем заглушку');
+            
+            // Создаем полную заглушку
+            window.YT.Player = class MockPlayer {
+                constructor(elementId, options) {
+                    console.log('🎬 Создан Mock YouTube Player для', elementId);
+                    this.videoId = options.videoId;
+                    this.events = options.events || {};
+                    
+                    // Автоматически вызываем onReady
+                    setTimeout(() => {
+                        if (this.events.onReady) {
+                            this.events.onReady({ target: this });
+                        }
+                    }, 100);
+                }
+                
+                loadVideoById(videoId) {
+                    console.log('🎬 Mock: Загрузка видео', videoId);
+                    this.videoId = videoId;
+                    return this;
+                }
+                
+                playVideo() { 
+                    console.log('▶️ Mock: Воспроизведение');
+                    return this; 
+                }
+                
+                pauseVideo() { 
+                    console.log('⏸️ Mock: Пауза');
+                    return this; 
+                }
+                
+                seekTo(seconds) { 
+                    console.log('⏩ Mock: Перемотка к', seconds);
+                    return this; 
+                }
+                
+                getCurrentTime() { return 0; }
+                getDuration() { return 100; }
+                getPlayerState() { return window.YT.PlayerState.PAUSED; }
+                setVolume(volume) { console.log('🔊 Mock: Громкость', volume); }
+            };
+            
+            // Вызываем callback
             setTimeout(() => {
                 if (window.onYouTubeIframeAPIReady) {
                     window.onYouTubeIframeAPIReady();
@@ -524,21 +528,21 @@ function loadYouTubeAPI() {
             }, 100);
         };
         
-        document.head.appendChild(tag);
+        document.head.appendChild(script);
         
-        // Таймаут
+        // Таймаут на случай если скрипт завис
         setTimeout(() => {
             if (!window.YT || !window.YT.Player) {
-                console.log('⏰ Таймаут - используем mock API');
-                tag.onerror();
+                console.log('⏰ Таймаут загрузки YouTube API');
+                script.onerror();
             }
-        }, 3000);
+        }, 5000);
     });
 }
 
-// Загружаем сразу
+// Запускаем загрузку
 loadYouTubeAPI().then(() => {
-    console.log('🎬 YouTube система готова');
+    console.log('🎬 Система YouTube готова к работе');
 }).catch(err => {
     console.error('❌ Ошибка загрузки YouTube:', err);
 });
