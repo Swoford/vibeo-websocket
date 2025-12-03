@@ -5,9 +5,35 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
+// Определяем пути
+const CLIENT_PATH = path.join(__dirname, '..', 'client');
+console.log('📁 Путь к client папке:', CLIENT_PATH);
+console.log('📁 Существует ли:', fs.existsSync(CLIENT_PATH));
+
+// Если нет client папки, попробуем найти index.html в других местах
+let indexHtmlPath = path.join(CLIENT_PATH, 'index.html');
+if (!fs.existsSync(indexHtmlPath)) {
+    console.log('⚠️ Не найден index.html в client/, пробую другие пути...');
+    
+    // Попробуем в текущей папке
+    indexHtmlPath = path.join(__dirname, 'index.html');
+    if (!fs.existsSync(indexHtmlPath)) {
+        // Попробуем в корне проекта
+        indexHtmlPath = path.join(process.cwd(), 'index.html');
+        if (!fs.existsSync(indexHtmlPath)) {
+            console.error('❌ index.html не найден ни в одном из возможных мест!');
+            console.log('📁 Искали в:', path.join(CLIENT_PATH, 'index.html'));
+            console.log('📁 Искали в:', path.join(__dirname, 'index.html'));
+            console.log('📁 Искали в:', path.join(process.cwd(), 'index.html'));
+        }
+    }
+}
+
+console.log('✅ Путь к index.html:', indexHtmlPath);
+
 // Создаем HTTP сервер
 const server = http.createServer((req, res) => {
-    console.log(`📄 HTTP запрос: ${req.method} ${req.url}`);
+    console.log(`\n📄 HTTP запрос: ${req.method} ${req.url}`);
     
     // Healthcheck для Railway
     if (req.url === '/health') {
@@ -37,58 +63,24 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // Прокси для YouTube Player API
-    if (req.url.startsWith('/youtube-player-api/')) {
-        console.log('📡 Проксирование YouTube Player API...');
-        
-        const videoId = req.url.split('/').pop() || '';
-        https.get(`https://www.youtube.com/s/player/${videoId}/player_ias.vflset/ru_RU/base.js`, (youtubeRes) => {
-            res.writeHead(youtubeRes.statusCode, {
-                'Content-Type': 'text/javascript',
-                'Cache-Control': 'public, max-age=86400'
-            });
-            youtubeRes.pipe(res);
-        }).on('error', (err) => {
-            console.error('YouTube Player API ошибка:', err);
-            res.writeHead(500);
-            res.end('Error loading YouTube Player API');
-        });
-        return;
-    }
+    // Для всех остальных запросов - отдаем index.html (SPA)
+    console.log(`📁 Отдаю index.html по пути: ${indexHtmlPath}`);
     
-    // Обслуживаем статические файлы (для development)
-    if (req.url === '/') {
-        const filePath = path.join(__dirname, 'index.html');
-        
-        // Проверяем существование файла
-        if (!fs.existsSync(filePath)) {
-            console.error('❌ index.html не найден по пути:', filePath);
-            res.writeHead(404);
-            res.end('index.html not found');
+    fs.readFile(indexHtmlPath, (err, data) => {
+        if (err) {
+            console.error('❌ Ошибка чтения index.html:', err);
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end(`Server Error: ${err.message}\n\nPath: ${indexHtmlPath}`);
             return;
         }
         
-        fs.readFile(filePath, (err, data) => {
-            if (err) {
-                console.error('❌ Ошибка чтения index.html:', err);
-                res.writeHead(500);
-                res.end('Server error');
-                return;
-            }
-            
-            res.writeHead(200, {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-cache'
-            });
-            res.end(data);
-            console.log('✅ index.html отправлен клиенту');
+        res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-cache'
         });
-        return;
-    }
-    
-    // Для других запросов - 404
-    res.writeHead(404);
-    res.end('Not Found');
+        res.end(data);
+        console.log('✅ index.html отправлен клиенту');
+    });
 });
 
 // WebSocket сервер
