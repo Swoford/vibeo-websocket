@@ -154,18 +154,30 @@ async function proxyYouTubeResource(reqUrl, res) {
     });
 }
 
-// Создаем HTTP сервер
 const server = http.createServer(async (req, res) => {
     const startTime = Date.now();
     console.log(`\n📄 ${req.method} ${req.url}`);
     
-    // Устанавливаем CORS заголовки для всех ответов
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // === ВАЖНО: Заголовки для VK Mini Apps ===
+    // Разрешаем загрузку в iframe от VK
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' vk.com *.vk.com vk.ru *.vk.ru https://vk.com https://*.vk.com https://vk.ru https://*.vk.ru;");
     
-    // Обрабатываем OPTIONS запросы для CORS
+    // Старый стандарт для iframe (для старых браузеров)
+    res.setHeader('X-Frame-Options', 'ALLOW-FROM https://vk.com');
+    
+    // CORS заголовки
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Дополнительные заголовки безопасности
+    res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    
+    // Обрабатываем OPTIONS запросы для CORS (предзапросы)
     if (req.method === 'OPTIONS') {
+        console.log('🔄 Обработка CORS preflight запроса');
         res.writeHead(200);
         res.end();
         return;
