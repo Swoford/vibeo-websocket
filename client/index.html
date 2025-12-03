@@ -1269,62 +1269,62 @@ const Player = {
     },
     
     createVKPlayer: (videoData) => {
-    console.log('🎬 Создаем VK видео плеер через виджет');
-    const playerContainer = document.getElementById('player-container');
-    
-    if (!playerContainer) return;
-    
-    // Используем официальный виджет VK Video
-    const videoId = videoData.id.startsWith('-') ? videoData.id : `-${videoData.id}`;
-    const widgetUrl = `https://vk.com/video_ext.php?${videoId}`;
-    
-    playerContainer.innerHTML = `
-        <div id="vk-video-container" style="width:100%;height:100%;position:relative;">
-            <iframe 
-                id="vk-video-frame"
-                src="${widgetUrl}"
-                width="100%" 
-                height="100%"
-                frameborder="0" 
-                allowfullscreen 
-                allow="autoplay; encrypted-media"
-                style="position:absolute;top:0;left:0;"
-            ></iframe>
-            <div style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(0,0,0,0.7);color:white;padding:5px 10px;border-radius:5px;font-size:12px;">
-                📱 VK видео
+        console.log('🎬 Создаем VK видео плеер через виджет');
+        const playerContainer = document.getElementById('player-container');
+        
+        if (!playerContainer) return;
+        
+        // Используем официальный виджет VK Video
+        const videoId = videoData.id.startsWith('-') ? videoData.id : `-${videoData.id}`;
+        const widgetUrl = `https://vk.com/video_ext.php?${videoId}`;
+        
+        playerContainer.innerHTML = `
+            <div id="vk-video-container" style="width:100%;height:100%;position:relative;">
+                <iframe 
+                    id="vk-video-frame"
+                    src="${widgetUrl}"
+                    width="100%" 
+                    height="100%"
+                    frameborder="0" 
+                    allowfullscreen 
+                    allow="autoplay; encrypted-media"
+                    style="position:absolute;top:0;left:0;"
+                ></iframe>
+                <div style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(0,0,0,0.7);color:white;padding:5px 10px;border-radius:5px;font-size:12px;">
+                    📱 VK видео
+                </div>
             </div>
-        </div>
-    `;
-    
-    playerContainer.classList.remove('hidden');
-    document.getElementById('empty-state').classList.add('hidden');
-    
-    // Добавляем обработчики сообщений для iframe
-    window.addEventListener('message', function(event) {
-        try {
-            if (event.data && event.data.type === 'vkVideoEvent') {
-                console.log('VK Video событие:', event.data);
-                
-                // Здесь можно обрабатывать события от VK плеера
-                if (State.isHost) {
-                    // Отправляем синхронизацию другим пользователям
-                    if (event.data.event === 'play') {
-                        WSClient.updatePlayback({ playing: true, time: event.data.currentTime || 0 });
-                    } else if (event.data.event === 'pause') {
-                        WSClient.updatePlayback({ playing: false, time: event.data.currentTime || 0 });
-                    } else if (event.data.event === 'seek') {
-                        WSClient.updatePlayback({ 
-                            playing: true, 
-                            time: event.data.currentTime || 0 
-                        });
+        `;
+        
+        playerContainer.classList.remove('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+        
+        // Добавляем обработчики сообщений для iframe
+        window.addEventListener('message', function(event) {
+            try {
+                if (event.data && event.data.type === 'vkVideoEvent') {
+                    console.log('VK Video событие:', event.data);
+                    
+                    // Здесь можно обрабатывать события от VK плеера
+                    if (State.isHost) {
+                        // Отправляем синхронизацию другим пользователям
+                        if (event.data.event === 'play') {
+                            WSClient.updatePlayback({ playing: true, time: event.data.currentTime || 0 });
+                        } else if (event.data.event === 'pause') {
+                            WSClient.updatePlayback({ playing: false, time: event.data.currentTime || 0 });
+                        } else if (event.data.event === 'seek') {
+                            WSClient.updatePlayback({ 
+                                playing: true, 
+                                time: event.data.currentTime || 0 
+                            });
+                        }
                     }
                 }
+            } catch (e) {
+                console.error('Ошибка обработки сообщения от VK видео:', e);
             }
-        } catch (e) {
-            console.error('Ошибка обработки сообщения от VK видео:', e);
-        }
-    });
-},
+        });
+    },
 
     createPlayer: () => {
         try {
@@ -1634,20 +1634,20 @@ const Player = {
     },
 
     showLoading: (show) => {
-    const overlay = document.getElementById('loading-overlay');
-    
-    // ДОБАВЬ ЭТУ ПРОВЕРКУ - если элемент не найден, выходим из функции
-    if (!overlay) {
-        console.log('⚠️ loading-overlay не найден в DOM');
-        return;
-    }
-    
-    if (show) {
-        overlay.classList.remove('hidden');
-    } else {
-        overlay.classList.add('hidden');
-    }
-},
+        const overlay = document.getElementById('loading-overlay');
+        
+        // ДОБАВЬ ЭТУ ПРОВЕРКУ - если элемент не найден, выходим из функции
+        if (!overlay) {
+            console.log('⚠️ loading-overlay не найден в DOM');
+            return;
+        }
+        
+        if (show) {
+            overlay.classList.remove('hidden');
+        } else {
+            overlay.classList.add('hidden');
+        }
+    },
 
     showControls: () => {
         const controls = document.getElementById('controls-bar');
@@ -2043,60 +2043,61 @@ const VideoLoader = {
     },
 
     parseVideoUrl: (url) => {
-    console.log('🔍 Парсим URL:', url);
-    
-    // YouTube парсинг
-    // ... существующий код YouTube ...
-    
-    // VK Video парсинг
-    const vkRegex = /(?:vk\.com|vkvideo\.ru)\/video(-?\d+_\d+)/;
-    const vkMatch = url.match(vkRegex);
-    
-    if (vkMatch) {
-        console.log('✅ Найден VK ID:', vkMatch[1]);
+        console.log('🔍 Парсим URL:', url);
         
-        // Убеждаемся что ID начинается с -
-        let videoId = vkMatch[1];
-        if (!videoId.startsWith('-')) {
-            videoId = `-${videoId}`;
+        // YouTube парсинг
+        // ... существующий код YouTube ...
+        
+        // VK Video парсинг
+        const vkRegex = /(?:vk\.com|vkvideo\.ru)\/video(-?\d+_\d+)/;
+        const vkMatch = url.match(vkRegex);
+        
+        if (vkMatch) {
+            console.log('✅ Найден VK ID:', vkMatch[1]);
+            
+            // Убеждаемся что ID начинается с -
+            let videoId = vkMatch[1];
+            if (!videoId.startsWith('-')) {
+                videoId = `-${videoId}`;
+            }
+            
+            return {
+                id: videoId,
+                title: 'VK видео',
+                type: 'vk',
+                directUrl: `https://vk.com/video${videoId}`,
+                embedUrl: `https://vk.com/video_ext.php?${videoId}`
+            };
         }
-        
-        return {
-            id: videoId,
-            title: 'VK видео',
-            type: 'vk',
-            directUrl: `https://vk.com/video${videoId}`,
-            embedUrl: `https://vk.com/video_ext.php?${videoId}`
-        };
-    }
 
-    console.log('❌ Не распознан URL');
-    return null;
-},
+        console.log('❌ Не распознан URL');
+        return null;
+    },
 
     loadVKVideo: async (videoData) => {
-    console.log('🎬 Загрузка VK видео:', videoData.id);
-    
-    // Проверяем, запущено ли в VK iframe
-    const isVKIframe = window.location !== window.parent.location && 
-                      (window.location.hostname.includes('vk.com') || 
-                       document.referrer.includes('vk.com'));
-    
-    if (isVKIframe) {
-        console.log('✅ Запущено внутри VK, можно использовать VK SDK');
-        Player.createVKPlayer(videoData);
-    } else {
-        console.log('⚠️ Запущено вне VK, используем iframe виджет');
-        Player.createVKPlayer(videoData);
+        console.log('🎬 Загрузка VK видео:', videoData.id);
+        
+        // Проверяем, запущено ли в VK iframe
+        const isVKIframe = window.location !== window.parent.location && 
+                          (window.location.hostname.includes('vk.com') || 
+                           document.referrer.includes('vk.com'));
+        
+        if (isVKIframe) {
+            console.log('✅ Запущено внутри VK, можно использовать VK SDK');
+            Player.createVKPlayer(videoData);
+        } else {
+            console.log('⚠️ Запущено вне VK, используем iframe виджет');
+            Player.createVKPlayer(videoData);
+        }
+        
+        if (State.isHost) {
+            WSClient.changeVideo(videoData);
+            Chat.addSystemMessage(`🎬 ${State.user.name} включил VK видео`);
+        }
+        
+        UI.toast(`🎬 VK видео загружено`, 'info');
     }
-    
-    if (State.isHost) {
-        WSClient.changeVideo(videoData);
-        Chat.addSystemMessage(`🎬 ${State.user.name} включил VK видео`);
-    }
-    
-    UI.toast(`🎬 VK видео загружено`, 'info');
-}
+}; // <-- ЗАКРЫВАЮЩАЯ СКОБКА ДЛЯ VideoLoader
         
 // УПРАВЛЕНИЕ КОНТРОЛЛАМИ ВИДЕО
 function resetControlsTimer() {
@@ -2136,51 +2137,13 @@ window.onYouTubeIframeAPIReady = function() {
     console.log('🎬 YouTube API готов (глобальный callback)');
 };
 
-// Инициализация при загрузке DOM
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM загружен, инициализируем приложение...');
-    
-    // ТЕПЕРЬ ЗДЕСЬ НЕТ ВЫЗОВА initializeEventListeners()
-    
-    // Просто инициализируем VK Bridge если доступен
-    if (typeof vkBridge !== 'undefined') {
-        console.log('✅ VK Bridge обнаружен');
-        vkBridge.send('VKWebAppInit', {})
-            .then(data => console.log('VK инициализирован:', data))
-            .catch(err => console.error('VK ошибка:', err));
-    }
-    
-    console.log('🎉 Vibeo полностью загружен и готов к работе!');
-});
-
 // Экспортируем App в глобальную область видимости для отладки
 window.App = App;
 window.Player = Player;
 window.Chat = Chat;
 window.UI = UI;
-</script>
-    <!-- Добавьте в конец body -->
-<script>
-// Обработка событий от VK видео iframe
-window.addEventListener('message', function(event) {
-    // Проверяем происхождение сообщения для безопасности
-    const allowedOrigins = [
-        'https://vk.com',
-        'https://vkvideo.ru',
-        'https://*.vk.com',
-        'https://*.vkvideo.ru'
-    ];
-    
-    if (allowedOrigins.some(origin => event.origin.includes(origin.replace('*.', '')))) {
-        console.log('📨 Сообщение от VK:', event.data);
-        
-        // Можно обрабатывать события плеера
-        if (event.data && typeof event.data === 'object') {
-            // event.data может содержать информацию о состоянии видео
-        }
-    }
-});
-// ✅ НОВЫЙ БЛОК - ДОБАВИТЬ В КОНЕЦ <script>
+
+// ✅ НОВЫЙ БЛОК - ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM загружен, инициализируем...');
     
@@ -2210,21 +2173,58 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('tab-users-btn')?.addEventListener('click', () => App.switchTab('users'));
     
     // 7. Чат
-    document.getElementById('chat-form')?.addEventListener('submit', Chat.sendMessage);
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            Chat.sendMessage(e);
+        });
+    }
     
     // 8. Загрузка видео
-    document.getElementById('load-video-btn')?.addEventListener('click', VideoLoader.loadVideoFromUrl);
-    document.getElementById('youtube-example-btn')?.addEventListener('click', () => VideoLoader.loadExampleVideo('youtube'));
-    document.getElementById('vk-example-btn')?.addEventListener('click', () => VideoLoader.loadExampleVideo('vk'));
+    document.getElementById('load-video-btn')?.addEventListener('click', () => VideoLoader.loadFromUrl());
+    document.getElementById('youtube-example-btn')?.addEventListener('click', () => VideoLoader.loadExample('youtube'));
+    document.getElementById('vk-example-btn')?.addEventListener('click', () => VideoLoader.loadExample('vk'));
     
     // 9. Контролы плеера
-    document.getElementById('play-btn')?.addEventListener('click', Player.togglePlay);
-    document.getElementById('sync-btn')?.addEventListener('click', Player.requestSync);
+    document.getElementById('play-btn')?.addEventListener('click', () => Player.togglePlay());
+    document.getElementById('sync-btn')?.addEventListener('click', () => Player.requestSync());
     document.getElementById('seek-slider')?.addEventListener('input', (e) => Player.onSeekInput(e.target.value));
     document.getElementById('seek-slider')?.addEventListener('change', (e) => Player.onSeekChange(e.target.value));
     document.getElementById('volume-slider')?.addEventListener('input', (e) => Player.setVolume(e.target.value));
     
+    // Также инициализируем VK Bridge если доступен
+    if (typeof vkBridge !== 'undefined') {
+        console.log('✅ VK Bridge обнаружен');
+        vkBridge.send('VKWebAppInit', {})
+            .then(data => console.log('VK инициализирован:', data))
+            .catch(err => console.error('VK ошибка:', err));
+    }
+    
     console.log('✅ Все обработчики событий установлены');
+});
+</script>
+
+    <!-- Добавьте в конец body -->
+<script>
+// Обработка событий от VK видео iframe
+window.addEventListener('message', function(event) {
+    // Проверяем происхождение сообщения для безопасности
+    const allowedOrigins = [
+        'https://vk.com',
+        'https://vkvideo.ru',
+        'https://*.vk.com',
+        'https://*.vkvideo.ru'
+    ];
+    
+    if (allowedOrigins.some(origin => event.origin.includes(origin.replace('*.', '')))) {
+        console.log('📨 Сообщение от VK:', event.data);
+        
+        // Можно обрабатывать события плеера
+        if (event.data && typeof event.data === 'object') {
+            // event.data может содержать информацию о состоянии видео
+        }
+    }
 });
 </script>
 </body>
