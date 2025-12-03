@@ -3,16 +3,23 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 // Создаем HTTP сервер
 const server = http.createServer((req, res) => {
     console.log(`📄 HTTP запрос: ${req.method} ${req.url}`);
-    // В server.js после создания http сервера
-const https = require('https');
-
-// Прокси для YouTube API
-server.on('request', (req, res) => {
-    // Прокси для iframe_api
+    
+    // Healthcheck для Railway
+    if (req.url === '/health') {
+        res.writeHead(200, { 
+            'Content-Type': 'text/plain',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end('Vibeo Server is Running!');
+        return;
+    }
+    
+    // Прокси для YouTube API
     if (req.url === '/youtube-iframe-api') {
         console.log('📡 Проксирование YouTube API...');
         
@@ -30,11 +37,11 @@ server.on('request', (req, res) => {
         return;
     }
     
-    // Прокси для player_api
-    if (req.url === '/youtube-player-api') {
+    // Прокси для YouTube Player API
+    if (req.url.startsWith('/youtube-player-api/')) {
         console.log('📡 Проксирование YouTube Player API...');
         
-        const videoId = req.url.split('?v=')[1] || '';
+        const videoId = req.url.split('/').pop() || '';
         https.get(`https://www.youtube.com/s/player/${videoId}/player_ias.vflset/ru_RU/base.js`, (youtubeRes) => {
             res.writeHead(youtubeRes.statusCode, {
                 'Content-Type': 'text/javascript',
@@ -48,44 +55,40 @@ server.on('request', (req, res) => {
         });
         return;
     }
-});
     
-    // Healthcheck для Railway
-    if (req.url === '/health') {
-        res.writeHead(200, { 
-            'Content-Type': 'text/plain',
-            'Access-Control-Allow-Origin': '*'
-        });
-        res.end('Vibeo Server is Running!');
-        return;
-    }
-    
-    // Обслуживаем index.html для всех маршрутов
-    const filePath = path.join(__dirname, '../client/index.html');
-    
-    // Проверяем существование файла
-    if (!fs.existsSync(filePath)) {
-        console.error('❌ index.html не найден по пути:', filePath);
-        res.writeHead(404);
-        res.end('index.html not found');
-        return;
-    }
-    
-    fs.readFile(filePath, (err, data) => {
-        if (err) {
-            console.error('❌ Ошибка чтения index.html:', err);
-            res.writeHead(500);
-            res.end('Server error');
+    // Обслуживаем статические файлы (для development)
+    if (req.url === '/') {
+        const filePath = path.join(__dirname, 'index.html');
+        
+        // Проверяем существование файла
+        if (!fs.existsSync(filePath)) {
+            console.error('❌ index.html не найден по пути:', filePath);
+            res.writeHead(404);
+            res.end('index.html not found');
             return;
         }
         
-        res.writeHead(200, {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-cache'
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                console.error('❌ Ошибка чтения index.html:', err);
+                res.writeHead(500);
+                res.end('Server error');
+                return;
+            }
+            
+            res.writeHead(200, {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(data);
+            console.log('✅ index.html отправлен клиенту');
         });
-        res.end(data);
-        console.log('✅ index.html отправлен клиенту');
-    });
+        return;
+    }
+    
+    // Для других запросов - 404
+    res.writeHead(404);
+    res.end('Not Found');
 });
 
 // WebSocket сервер
@@ -488,6 +491,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 HTTP + WebSocket сервер запущен на порту ${PORT}`);
     console.log(`🌐 Healthcheck: http://0.0.0.0:${PORT}/health`);
     console.log(`📡 WebSocket: ws://0.0.0.0:${PORT}/ws`);
+    console.log(`📹 YouTube API прокси: http://0.0.0.0:${PORT}/youtube-iframe-api`);
 });
 
 process.on('SIGINT', () => {
