@@ -497,7 +497,30 @@ loadYouTubeAPI().catch(error => {
     };
 });
 </script>
+<script>
+// Проверка, запущено ли в VK
+if (window.location !== window.parent.location) {
+    console.log('🚀 Запущено внутри iframe (вероятно VK)');
+    
+    // Отправляем сообщение родителю для проверки связи
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            window.parent.postMessage({
+                type: 'VK_APP_READY',
+                payload: { loaded: true, timestamp: Date.now() }
+            }, '*');
+        }, 1000);
+    });
+}
 
+// Инициализация VK Bridge если доступен
+if (typeof vkBridge !== 'undefined') {
+    console.log('✅ VK Bridge обнаружен');
+    vkBridge.send('VKWebAppInit', {})
+        .then(data => console.log('VK инициализирован:', data))
+        .catch(err => console.error('VK ошибка:', err));
+}
+</script>
 <!-- Добавь перед закрывающим </head> -->
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 </head>
