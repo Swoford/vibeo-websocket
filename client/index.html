@@ -433,7 +433,6 @@
     </style>
 
 <!-- ФИКС для YouTube API -->
-<!-- ФИКС для YouTube API - используем прокси -->
 <script>
 // ФИКС: Упрощенная загрузка YouTube API
 function loadYouTubeAPI() {
@@ -534,28 +533,6 @@ loadYouTubeAPI().then(() => {
 }).catch(err => {
     console.error('❌ Ошибка загрузки YouTube:', err);
 });
-
-// Загружаем YouTube API
-loadYouTubeAPI().catch(error => {
-    console.warn('YouTube API недоступен, будет использован fallback режим');
-    // Создаем заглушку для window.YT чтобы не было ошибок
-    window.YT = {
-        Player: class MockPlayer {
-            constructor() {}
-            loadVideoById() {}
-            playVideo() {}
-            pauseVideo() {}
-            seekTo() {}
-            getCurrentTime() { return 0; }
-            getDuration() { return 0; }
-            getPlayerState() { return -1; }
-            setVolume() {}
-        }
-    };
-    window.onYouTubeIframeAPIReady = function() {
-        console.log('Mock YouTube API ready');
-    };
-});
 </script>
 <script>
 // Проверка, запущено ли в VK
@@ -581,8 +558,6 @@ if (typeof vkBridge !== 'undefined') {
         .catch(err => console.error('VK ошибка:', err));
 }
 </script>
-<!-- Добавь перед закрывающим </head> -->
-<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 </head>
 
 <body class="h-screen flex flex-col bg-[#0b1120] no-select">
@@ -858,12 +833,9 @@ if (typeof vkBridge !== 'undefined') {
     </div>
 </main>
 
-<!-- YouTube API -->
-<script src="https://www.youtube.com/iframe_api"></script>
-
 <script>
 // ==========================================================================
-// VIBEO - СОВМЕСТНЫЙ ПРОСМОТР ВИДЕО
+// VIBEO - СОВМЕСТНЫЙ ПРОСМОТР ВИДЕО (УПРОЩЕННАЯ ВЕРСИЯ)
 // ==========================================================================
 
 // Глобальные переменные
@@ -883,6 +855,33 @@ const State = {
     video: null,
     playbackState: { playing: false, time: 0 },
     isHost: false
+};
+
+/* ==========================================================================
+   UI UTILITIES
+   ========================================================================== */
+const UI = {
+    toast: (msg, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+        const colors = { success: 'green', error: 'red', info: 'blue' };
+        
+        el.className = `glass px-4 py-3 rounded-xl text-sm text-white shadow-lg border-l-4 border-${colors[type]}-500 flex items-center gap-2 fade-in`;
+        el.innerHTML = `<i class="fa-solid ${icons[type]} text-${colors[type]}-400"></i> ${msg}`;
+        container.appendChild(el);
+        
+        setTimeout(() => {
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+        }, 4000);
+    },
+
+    updateConnectionStatus: (status) => {
+        const indicator = document.getElementById('connection-status');
+        indicator.className = `connection-status w-2 h-2 rounded-full ${status}`;
+    }
 };
 
 /* ==========================================================================
@@ -1229,28 +1228,27 @@ const App = {
    ========================================================================== */
 const Player = {
     init: () => {
-    console.log('🎬 Инициализация плеера...');
-    
-    // Всегда создаем fallback для начала
-    Player.createFallbackPlayer();
-    
-    // Позже попробуем создать настоящий плеер если API доступен
-    setTimeout(() => {
-        if (window.YT && window.YT.Player && !ytPlayer) {
-            console.log('✅ YouTube API доступен, создаем плеер');
-            try {
-                Player.createPlayer();
-            } catch (error) {
-                console.error('❌ Ошибка создания плеера:', error);
-                Player.createFallbackPlayer();
+        console.log('🎬 Инициализация плеера...');
+        
+        // Всегда создаем fallback для начала
+        Player.createFallbackPlayer();
+        
+        // Позже попробуем создать настоящий плеер если API доступен
+        setTimeout(() => {
+            if (window.YT && window.YT.Player && !ytPlayer) {
+                console.log('✅ YouTube API доступен, создаем плеер');
+                try {
+                    Player.createPlayer();
+                } catch (error) {
+                    console.error('❌ Ошибка создания плеера:', error);
+                    Player.createFallbackPlayer();
+                }
             }
-        }
-    }, 1000);
-},
+        }, 1000);
+    },
 
     createFallbackPlayer: () => {
         console.log('🔄 Создаем fallback плеер');
-        // Создаем простой контейнер для видео
         const playerContainer = document.getElementById('player-container');
         if (playerContainer) {
             playerContainer.innerHTML = `
@@ -1275,80 +1273,80 @@ const Player = {
     },
     
     createVKFallbackPlayer: (videoData) => {
-    console.log('🔄 Создаем VK видео плеер');
-    const playerContainer = document.getElementById('player-container');
-    
-    if (!playerContainer) return;
-    
-    playerContainer.innerHTML = `
-        <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;color:white;padding:20px;text-align:center;">
-            <div style="font-size:64px;margin-bottom:20px;">📱</div>
-            <h3 style="margin-bottom:10px;color:#0077FF;font-size:24px;">${videoData.title || 'VK видео'}</h3>
-            <p style="opacity:0.7;margin-bottom:30px;max-width:600px;">
-                VK видео загружено. Для совместного просмотра:<br>
-                1. Откройте видео по ссылке ниже<br>
-                2. Вернитесь в это окно<br>
-                3. Используйте кнопки управления для синхронизации
-            </p>
-            
-            <a href="${videoData.directUrl || `https://vk.com/video${videoData.id}`}" 
-               target="_blank" 
-               style="background:#0077FF;color:white;padding:15px 30px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:600;margin-top:20px;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93V15.07C2 20.67 3.33 22 8.93 22H15.07C20.67 22 22 20.67 22 15.07V8.93C22 3.33 20.67 2 15.07 2M18.15 16.27H16.69C16.14 16.27 15.97 15.82 15 14.83C14.12 14 13.74 13.88 13.53 13.88C13.24 13.88 13.15 13.96 13.15 14.38V15.69C13.15 16.04 13.04 16.26 12.11 16.26C10.57 16.26 8.86 15.32 7.66 13.59C5.85 11.05 5.36 9.13 5.36 8.75C5.36 8.54 5.43 8.34 5.85 8.34H7.32C7.69 8.34 7.83 8.5 7.97 8.9C8.69 10.96 10.38 13.09 11.53 13.09C11.8 13.09 11.87 13 11.87 12.66V10.84C11.87 9.5 12.01 9.41 12.41 9.41C12.71 9.41 13.18 9.53 14.54 10.94C16.01 12.57 16.3 13.08 17.08 13.08H18.56C19 13.08 19.13 13.35 18.96 13.69C18.68 14.22 17.64 15.26 16.64 16.04C16.24 16.35 15.98 16.5 15.89 16.66C15.79 16.83 15.86 17 16.12 17H18.15C18.56 17 18.7 17.18 18.7 17.41C18.7 17.76 18.3 18.31 17.63 18.95C16.8 19.74 16.19 20 15.87 20C15.62 20 15.5 19.88 15.5 19.52V18.77C15.5 17.82 15.38 17.73 14.64 17.18C13.75 16.5 12.61 15.47 11.2 13.93C9.92 12.55 9.22 11.76 8.95 11.38C8.68 11 8.76 10.8 8.95 10.56C9.06 10.43 9.27 10.2 9.46 10C10.67 8.74 11.5 7.71 12.08 6.92C12.46 6.41 12.86 6 13.45 6H14.93C15.23 6 15.36 6.16 15.45 6.45C15.55 6.79 16.06 7.87 16.63 8.92C17.14 9.84 17.55 10.42 17.73 10.42C17.86 10.42 17.93 10.32 17.93 10.05V8.93C17.93 8.5 18.05 8.34 18.44 8.34H19.93C20.28 8.34 20.41 8.55 20.28 8.9C20.07 9.42 19.03 10.67 17.63 12.04C16.99 12.65 16.57 13 16.45 13.15C16.33 13.3 16.37 13.42 16.54 13.42C17.21 13.42 18.53 12.38 19.63 11.21C20.36 10.42 21.03 9.66 21.07 9.41C21.11 9.16 20.99 9 20.64 9H19.17C18.81 9 18.69 9.11 18.57 9.38C18.43 9.68 17.77 10.65 16.93 11.58C16.36 12.21 16.06 12.42 15.98 12.42C15.86 12.42 15.79 12.33 15.79 11.95V11.25C15.79 9.85 16.32 9.72 16.53 9.72C16.68 9.72 16.9 9.79 17.32 10.19C17.77 10.61 19.08 12.11 20.26 13.53C21.14 14.56 21.8 15.36 21.86 15.57C21.93 15.84 21.8 16 21.43 16H19.93Z"/>
-                </svg>
-                Открыть VK видео
-            </a>
-            
-            <div style="margin-top:40px;font-size:14px;opacity:0.5;max-width:500px;">
-                <p><strong>Инструкция:</strong><br>
-                • Нажмите кнопку выше чтобы открыть видео в VK<br>
-                • Вернитесь в это окно<br>
-                • Используйте кнопки "▶️ Воспроизвести" и "⏸️ Пауза" для синхронизации с друзьями</p>
+        console.log('🔄 Создаем VK видео плеер');
+        const playerContainer = document.getElementById('player-container');
+        
+        if (!playerContainer) return;
+        
+        playerContainer.innerHTML = `
+            <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;color:white;padding:20px;text-align:center;">
+                <div style="font-size:64px;margin-bottom:20px;">📱</div>
+                <h3 style="margin-bottom:10px;color:#0077FF;font-size:24px;">${videoData.title || 'VK видео'}</h3>
+                <p style="opacity:0.7;margin-bottom:30px;max-width:600px;">
+                    VK видео загружено. Для совместного просмотра:<br>
+                    1. Откройте видео по ссылке ниже<br>
+                    2. Вернитесь в это окно<br>
+                    3. Используйте кнопки управления для синхронизации
+                </p>
+                
+                <a href="${videoData.directUrl || `https://vk.com/video${videoData.id}`}" 
+                   target="_blank" 
+                   style="background:#0077FF;color:white;padding:15px 30px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:600;margin-top:20px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93V15.07C2 20.67 3.33 22 8.93 22H15.07C20.67 22 22 20.67 22 15.07V8.93C22 3.33 20.67 2 15.07 2M18.15 16.27H16.69C16.14 16.27 15.97 15.82 15 14.83C14.12 14 13.74 13.88 13.53 13.88C13.24 13.88 13.15 13.96 13.15 14.38V15.69C13.15 16.04 13.04 16.26 12.11 16.26C10.57 16.26 8.86 15.32 7.66 13.59C5.85 11.05 5.36 9.13 5.36 8.75C5.36 8.54 5.43 8.34 5.85 8.34H7.32C7.69 8.34 7.83 8.5 7.97 8.9C8.69 10.96 10.38 13.09 11.53 13.09C11.8 13.09 11.87 13 11.87 12.66V10.84C11.87 9.5 12.01 9.41 12.41 9.41C12.71 9.41 13.18 9.53 14.54 10.94C16.01 12.57 16.3 13.08 17.08 13.08H18.56C19 13.08 19.13 13.35 18.96 13.69C18.68 14.22 17.64 15.26 16.64 16.04C16.24 16.35 15.98 16.5 15.89 16.66C15.79 16.83 15.86 17 16.12 17H18.15C18.56 17 18.7 17.18 18.7 17.41C18.7 17.76 18.3 18.31 17.63 18.95C16.8 19.74 16.19 20 15.87 20C15.62 20 15.5 19.88 15.5 19.52V18.77C15.5 17.82 15.38 17.73 14.64 17.18C13.75 16.5 12.61 15.47 11.2 13.93C9.92 12.55 9.22 11.76 8.95 11.38C8.68 11 8.76 10.8 8.95 10.56C9.06 10.43 9.27 10.2 9.46 10C10.67 8.74 11.5 7.71 12.08 6.92C12.46 6.41 12.86 6 13.45 6H14.93C15.23 6 15.36 6.16 15.45 6.45C15.55 6.79 16.06 7.87 16.63 8.92C17.14 9.84 17.55 10.42 17.73 10.42C17.86 10.42 17.93 10.32 17.93 10.05V8.93C17.93 8.5 18.05 8.34 18.44 8.34H19.93C20.28 8.34 20.41 8.55 20.28 8.9C20.07 9.42 19.03 10.67 17.63 12.04C16.99 12.65 16.57 13 16.45 13.15C16.33 13.3 16.37 13.42 16.54 13.42C17.21 13.42 18.53 12.38 19.63 11.21C20.36 10.42 21.03 9.66 21.07 9.41C21.11 9.16 20.99 9 20.64 9H19.17C18.81 9 18.69 9.11 18.57 9.38C18.43 9.68 17.77 10.65 16.93 11.58C16.36 12.21 16.06 12.42 15.98 12.42C15.86 12.42 15.79 12.33 15.79 11.95V11.25C15.79 9.85 16.32 9.72 16.53 9.72C16.68 9.72 16.9 9.79 17.32 10.19C17.77 10.61 19.08 12.11 20.26 13.53C21.14 14.56 21.8 15.36 21.86 15.57C21.93 15.84 21.8 16 21.43 16H19.93Z"/>
+                    </svg>
+                    Открыть VK видео
+                </a>
+                
+                <div style="margin-top:40px;font-size:14px;opacity:0.5;max-width:500px;">
+                    <p><strong>Инструкция:</strong><br>
+                    • Нажмите кнопку выше чтобы открыть видео в VK<br>
+                    • Вернитесь в это окно<br>
+                    • Используйте кнопки "▶️ Воспроизвести" и "⏸️ Пауза" для синхронизации с друзьями</p>
+                </div>
             </div>
-        </div>
-    `;
-    
-    playerContainer.classList.remove('hidden');
-    document.getElementById('empty-state').classList.add('hidden');
-},
+        `;
+        
+        playerContainer.classList.remove('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+    },
 
     createPlayer: () => {
-    try {
-        console.log('🔄 Создаем YouTube плеер...');
-        ytPlayer = new YT.Player('yt-player', {
-            height: '100%',
-            width: '100%',
-            videoId: State.video ? State.video.id : '',
-            playerVars: {
-                'playsinline': 1,
-                'controls': 0,
-                'disablekb': 1,
-                'rel': 0,
-                'modestbranding': 1,
-                'enablejsapi': 1
-            },
-            events: {
-                'onReady': (event) => {
-                    console.log('✅ YouTube плеер готов');
-                    Player.onReady(event);
+        try {
+            console.log('🔄 Создаем YouTube плеер...');
+            ytPlayer = new YT.Player('yt-player', {
+                height: '100%',
+                width: '100%',
+                videoId: State.video ? State.video.id : '',
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'rel': 0,
+                    'modestbranding': 1,
+                    'enablejsapi': 1
                 },
-                'onStateChange': (event) => {
-                    Player.onStateChange(event);
-                },
-                'onError': (error) => {
-                    console.error('❌ Ошибка YouTube плеера:', error);
-                    Player.onError(error);
+                events: {
+                    'onReady': (event) => {
+                        console.log('✅ YouTube плеер готов');
+                        Player.onReady(event);
+                    },
+                    'onStateChange': (event) => {
+                        Player.onStateChange(event);
+                    },
+                    'onError': (error) => {
+                        console.error('❌ Ошибка YouTube плеера:', error);
+                        Player.onError(error);
+                    }
                 }
-            }
-        });
-        console.log('✅ YouTube плеер создан');
-    } catch (error) {
-        console.error('❌ Ошибка создания YouTube плеера:', error);
-        Player.createFallbackPlayer();
-        UI.toast('⚠️ Плеер в режиме совместимости', 'info');
-    }
-},
+            });
+            console.log('✅ YouTube плеер создан');
+        } catch (error) {
+            console.error('❌ Ошибка создания YouTube плеера:', error);
+            Player.createFallbackPlayer();
+            UI.toast('⚠️ Плеер в режиме совместимости', 'info');
+        }
+    },
 
     onReady: () => {
         console.log('Player ready');
@@ -1357,49 +1355,49 @@ const Player = {
     },
 
     onStateChange: (event) => {
-    // Проверяем что YT объект существует
-    if (!window.YT || !window.YT.PlayerState) {
-        console.warn('YT.PlayerState не определен');
-        return;
-    }
-    
-    const currentTime = ytPlayer ? ytPlayer.getCurrentTime() : 0;
-    const now = Date.now();
-    
-    if (now - lastPlaybackUpdate > 500) {
+        // Проверяем что YT объект существует
+        if (!window.YT || !window.YT.PlayerState) {
+            console.warn('YT.PlayerState не определен');
+            return;
+        }
+        
+        const currentTime = ytPlayer ? ytPlayer.getCurrentTime() : 0;
+        const now = Date.now();
+        
+        if (now - lastPlaybackUpdate > 500) {
+            switch (event.data) {
+                case window.YT.PlayerState.PLAYING:
+                    if (State.isHost) {
+                        WSClient.updatePlayback({ playing: true, time: currentTime });
+                        lastPlaybackUpdate = now;
+                    }
+                    break;
+                case window.YT.PlayerState.PAUSED:
+                    if (State.isHost) {
+                        WSClient.updatePlayback({ playing: false, time: currentTime });
+                        lastPlaybackUpdate = now;
+                    }
+                    break;
+            }
+        }
+
         switch (event.data) {
             case window.YT.PlayerState.PLAYING:
-                if (State.isHost) {
-                    WSClient.updatePlayback({ playing: true, time: currentTime });
-                    lastPlaybackUpdate = now;
-                }
+                Player.updatePlayBtn(true);
+                Player.startProgressLoop();
+                Player.showLoading(false);
                 break;
             case window.YT.PlayerState.PAUSED:
-                if (State.isHost) {
-                    WSClient.updatePlayback({ playing: false, time: currentTime });
-                    lastPlaybackUpdate = now;
-                }
+                Player.updatePlayBtn(false);
+                break;
+            case window.YT.PlayerState.BUFFERING:
+                Player.showLoading(true);
+                break;
+            case window.YT.PlayerState.ENDED:
+                Player.updatePlayBtn(false);
                 break;
         }
-    }
-
-    switch (event.data) {
-        case window.YT.PlayerState.PLAYING:
-            Player.updatePlayBtn(true);
-            Player.startProgressLoop();
-            Player.showLoading(false);
-            break;
-        case window.YT.PlayerState.PAUSED:
-            Player.updatePlayBtn(false);
-            break;
-        case window.YT.PlayerState.BUFFERING:
-            Player.showLoading(true);
-            break;
-        case window.YT.PlayerState.ENDED:
-            Player.updatePlayBtn(false);
-            break;
-    }
-},
+    },
 
     onError: (error) => {
         console.error('YouTube Player Error:', error);
@@ -1408,61 +1406,61 @@ const Player = {
     },
 
     loadVideo: (videoId, title, broadcast = true) => {
-    if (!State.isHost && broadcast) {
-        UI.toast('❌ Только создатель комнаты может менять видео', 'error');
-        return;
-    }
-    
-    State.video = { id: videoId, title: title, originalId: videoId };
-    
-    console.log('🎬 Загружаем видео:', videoId, title);
-    
-    // Скрываем пустое состояние
-    document.getElementById('empty-state').classList.add('hidden');
-    document.getElementById('player-container').classList.remove('hidden');
+        if (!State.isHost && broadcast) {
+            UI.toast('❌ Только создатель комнаты может менять видео', 'error');
+            return;
+        }
+        
+        State.video = { id: videoId, title: title, originalId: videoId };
+        
+        console.log('🎬 Загружаем видео:', videoId, title);
+        
+        // Скрываем пустое состояние
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('player-container').classList.remove('hidden');
 
-    // Проверяем тип видео
-    const isVKVideo = videoId.includes('_') && !videoId.includes('?');
-    
-    if (isVKVideo) {
-        // Для VK видео используем специальный обработчик
-        console.log('🔄 Это VK видео, используем fallback');
-        VideoLoader.loadVKVideo(State.video);
-        return;
-    }
-    
-    // Для YouTube видео
-    if (window.YT && window.YT.Player && ytPlayer) {
-        console.log('✅ Используем YouTube Player API');
-        Player.showLoading(true);
+        // Проверяем тип видео
+        const isVKVideo = videoId.includes('_') && !videoId.includes('?');
+        
+        if (isVKVideo) {
+            // Для VK видео используем специальный обработчик
+            console.log('🔄 Это VK видео, используем fallback');
+            VideoLoader.loadVKVideo(State.video);
+            return;
+        }
+        
+        // Для YouTube видео
+        if (window.YT && window.YT.Player && ytPlayer) {
+            console.log('✅ Используем YouTube Player API');
+            Player.showLoading(true);
 
-        try {
-            ytPlayer.loadVideoById(videoId);
+            try {
+                ytPlayer.loadVideoById(videoId);
+                
+                if (broadcast) {
+                    WSClient.changeVideo(State.video);
+                    Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${title}`);
+                }
+
+                UI.toast(`🎬 Видео "${title}" загружено`, 'success');
+            } catch (error) {
+                console.error('Error loading video with YouTube API:', error);
+                Player.createFallbackPlayer();
+                UI.toast('🎬 Видео загружено (режим совместимости)', 'info');
+            }
+        } else {
+            // Fallback для YouTube
+            console.log('🔄 Используем fallback режим для YouTube');
+            Player.createFallbackPlayer();
             
             if (broadcast) {
                 WSClient.changeVideo(State.video);
                 Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${title}`);
             }
-
-            UI.toast(`🎬 Видео "${title}" загружено`, 'success');
-        } catch (error) {
-            console.error('Error loading video with YouTube API:', error);
-            Player.createFallbackPlayer();
-            UI.toast('🎬 Видео загружено (режим совместимости)', 'info');
+            
+            UI.toast(`🎬 Видео "${title}" загружено (совместимость)`, 'info');
         }
-    } else {
-        // Fallback для YouTube
-        console.log('🔄 Используем fallback режим для YouTube');
-        Player.createFallbackPlayer();
-        
-        if (broadcast) {
-            WSClient.changeVideo(State.video);
-            Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${title}`);
-        }
-        
-        UI.toast(`🎬 Видео "${title}" загружено (совместимость)`, 'info');
-    }
-},
+    },
 
     handleVideoChanged: (message) => {
         if (message.userId !== State.user.id) {
