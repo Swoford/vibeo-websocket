@@ -433,43 +433,73 @@
     </style>
 
 <!-- ФИКС для YouTube API -->
+<!-- ФИКС для YouTube API - используем прокси -->
 <script>
-// Предзагрузка YouTube API с обработкой ошибок
 function loadYouTubeAPI() {
     return new Promise((resolve, reject) => {
         if (window.YT && window.YT.Player) {
+            console.log('✅ YouTube API уже загружен');
             resolve();
             return;
         }
         
-        const tag = document.createElement('script');
-        tag.src = 'https://www.youtube.com/iframe_api';
-        tag.onerror = () => {
-            console.error('❌ Не удалось загрузить YouTube API');
-            reject(new Error('YouTube API load failed'));
-        };
+        // Пытаемся несколько источников
+        const sources = [
+            '/youtube-iframe-api', // Наш прокси
+            'https://www.youtube.com/iframe_api', // Оригинал
+            'https://www.youtube-nocookie.com/iframe_api' // Альтернативный домен
+        ];
         
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        let currentSource = 0;
         
-        // Глобальная функция для YouTube API
-        window.onYouTubeIframeAPIReady = function() {
-            console.log('✅ YouTube API загружен и готов');
-            resolve();
-        };
-        
-        // Таймаут на случай если API не загрузится
-        setTimeout(() => {
-            if (!window.YT) {
-                console.warn('⚠️ YouTube API загружается медленно...');
+        function loadFromSource(index) {
+            if (index >= sources.length) {
+                console.error('❌ Все источники YouTube API недоступны');
+                reject(new Error('YouTube API недоступен'));
+                return;
             }
-        }, 5000);
+            
+            const tag = document.createElement('script');
+            tag.src = sources[index];
+            tag.onerror = () => {
+                console.warn(`⚠️ Источник ${sources[index]} недоступен, пробуем следующий...`);
+                currentSource++;
+                loadFromSource(currentSource);
+            };
+            
+            tag.onload = () => {
+                console.log(`✅ YouTube API загружен с ${sources[index]}`);
+                // Ждем инициализации API
+                const checkInterval = setInterval(() => {
+                    if (window.YT && window.YT.Player) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                
+                // Таймаут на случай если API не инициализируется
+                setTimeout(() => {
+                    if (!window.YT) {
+                        clearInterval(checkInterval);
+                        currentSource++;
+                        loadFromSource(currentSource);
+                    }
+                }, 5000);
+            };
+            
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+        
+        loadFromSource(currentSource);
     });
 }
 
 // Загружаем YouTube API сразу
 loadYouTubeAPI().catch(error => {
-    console.warn('YouTube API недоступен, но приложение продолжит работу');
+    console.warn('YouTube API недоступен, переключаемся на fallback режим');
+    // Можно показать уведомление пользователю
+    UI.toast('⚠️ YouTube временно недоступен, используем альтернативный режим', 'info');
 });
 </script>
 
