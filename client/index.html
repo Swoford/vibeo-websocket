@@ -443,63 +443,58 @@ function loadYouTubeAPI() {
             return;
         }
         
-        // Пытаемся несколько источников
-        const sources = [
-            '/youtube-iframe-api', // Наш прокси
-            'https://www.youtube.com/iframe_api', // Оригинал
-            'https://www.youtube-nocookie.com/iframe_api' // Альтернативный домен
-        ];
+        // Загружаем через наш прокси
+        const tag = document.createElement('script');
+        tag.src = '/youtube-iframe-api';
+        tag.onerror = () => {
+            console.error('❌ Не удалось загрузить YouTube API через прокси');
+            reject(new Error('YouTube API недоступен'));
+        };
         
-        let currentSource = 0;
+        // Глобальная функция для YouTube API
+        window.onYouTubeIframeAPIReady = function() {
+            console.log('✅ YouTube API готов через callback');
+            
+            // Также загружаем widgetapi
+            const widgetTag = document.createElement('script');
+            widgetTag.src = '/s/player/api_player';
+            document.head.appendChild(widgetTag);
+            
+            resolve();
+        };
         
-        function loadFromSource(index) {
-            if (index >= sources.length) {
-                console.error('❌ Все источники YouTube API недоступны');
-                reject(new Error('YouTube API недоступен'));
-                return;
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        // Таймаут
+        setTimeout(() => {
+            if (!window.YT) {
+                console.warn('⚠️ YouTube API загружается медленно, продолжаем...');
             }
-            
-            const tag = document.createElement('script');
-            tag.src = sources[index];
-            tag.onerror = () => {
-                console.warn(`⚠️ Источник ${sources[index]} недоступен, пробуем следующий...`);
-                currentSource++;
-                loadFromSource(currentSource);
-            };
-            
-            tag.onload = () => {
-                console.log(`✅ YouTube API загружен с ${sources[index]}`);
-                // Ждем инициализации API
-                const checkInterval = setInterval(() => {
-                    if (window.YT && window.YT.Player) {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }
-                }, 100);
-                
-                // Таймаут на случай если API не инициализируется
-                setTimeout(() => {
-                    if (!window.YT) {
-                        clearInterval(checkInterval);
-                        currentSource++;
-                        loadFromSource(currentSource);
-                    }
-                }, 5000);
-            };
-            
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        }
-        
-        loadFromSource(currentSource);
+        }, 5000);
     });
 }
 
-// Загружаем YouTube API сразу
+// Загружаем YouTube API
 loadYouTubeAPI().catch(error => {
-    console.warn('YouTube API недоступен, переключаемся на fallback режим');
-    // Можно показать уведомление пользователю
-    UI.toast('⚠️ YouTube временно недоступен, используем альтернативный режим', 'info');
+    console.warn('YouTube API недоступен, будет использован fallback режим');
+    // Создаем заглушку для window.YT чтобы не было ошибок
+    window.YT = {
+        Player: class MockPlayer {
+            constructor() {}
+            loadVideoById() {}
+            playVideo() {}
+            pauseVideo() {}
+            seekTo() {}
+            getCurrentTime() { return 0; }
+            getDuration() { return 0; }
+            getPlayerState() { return -1; }
+            setVolume() {}
+        }
+    };
+    window.onYouTubeIframeAPIReady = function() {
+        console.log('Mock YouTube API ready');
+    };
 });
 </script>
 
