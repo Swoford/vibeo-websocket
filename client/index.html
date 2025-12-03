@@ -443,22 +443,109 @@ function loadYouTubeAPI() {
             return;
         }
         
-        // Загружаем через наш прокси
+        console.log('🔄 Загрузка YouTube API через прокси...');
+        
         const tag = document.createElement('script');
         tag.src = '/youtube-iframe-api';
+        
+        // Создаем заглушку на случай если API не загрузится
+        window.YT = window.YT || {
+            PlayerState: {
+                UNSTARTED: -1,
+                ENDED: 0,
+                PLAYING: 1,
+                PAUSED: 2,
+                BUFFERING: 3,
+                CUED: 5
+            }
+        };
+        
         tag.onerror = () => {
             console.error('❌ Не удалось загрузить YouTube API через прокси');
-            reject(new Error('YouTube API недоступен'));
+            
+            // Создаем полную заглушку для YT
+            window.YT = {
+                Player: class MockPlayer {
+                    constructor(elementId, options) {
+                        console.log('🎬 Создан mock YouTube плеер');
+                        this.elementId = elementId;
+                        this.videoId = options.videoId;
+                        this.events = options.events || {};
+                        
+                        // Имитируем загрузку
+                        setTimeout(() => {
+                            if (this.events.onReady) {
+                                this.events.onReady({ target: this });
+                            }
+                        }, 500);
+                    }
+                    
+                    loadVideoById(videoId, startSeconds) {
+                        console.log('🎬 Mock: Загрузка видео', videoId);
+                        this.videoId = videoId;
+                        return this;
+                    }
+                    
+                    playVideo() {
+                        console.log('▶️ Mock: Воспроизведение');
+                        return this;
+                    }
+                    
+                    pauseVideo() {
+                        console.log('⏸️ Mock: Пауза');
+                        return this;
+                    }
+                    
+                    seekTo(seconds) {
+                        console.log('⏩ Mock: Перемотка к', seconds);
+                        return this;
+                    }
+                    
+                    getCurrentTime() { return 0; }
+                    getDuration() { return 100; }
+                    getPlayerState() { return window.YT.PlayerState.PAUSED; }
+                    setVolume(volume) { console.log('🔊 Mock: Громкость', volume); }
+                    mute() {}
+                    unMute() {}
+                    setSize(width, height) { return this; }
+                },
+                
+                PlayerState: {
+                    UNSTARTED: -1,
+                    ENDED: 0,
+                    PLAYING: 1,
+                    PAUSED: 2,
+                    BUFFERING: 3,
+                    CUED: 5
+                }
+            };
+            
+            // Вызываем callback если есть
+            if (window.onYouTubeIframeAPIReady) {
+                setTimeout(() => {
+                    console.log('✅ Mock YouTube API готов');
+                    window.onYouTubeIframeAPIReady();
+                }, 100);
+            }
+            
+            resolve();
         };
         
         // Глобальная функция для YouTube API
         window.onYouTubeIframeAPIReady = function() {
             console.log('✅ YouTube API готов через callback');
             
-            // Также загружаем widgetapi
-            const widgetTag = document.createElement('script');
-            widgetTag.src = '/s/player/api_player';
-            document.head.appendChild(widgetTag);
+            // Проверяем, что YT объект существует
+            if (!window.YT.PlayerState) {
+                window.YT.PlayerState = {
+                    UNSTARTED: -1,
+                    ENDED: 0,
+                    PLAYING: 1,
+                    PAUSED: 2,
+                    BUFFERING: 3,
+                    CUED: 5
+                };
+            }
             
             resolve();
         };
@@ -466,12 +553,13 @@ function loadYouTubeAPI() {
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         
-        // Таймаут
+        // Таймаут на всякий случай
         setTimeout(() => {
-            if (!window.YT) {
-                console.warn('⚠️ YouTube API загружается медленно, продолжаем...');
+            if (!window.YT || !window.YT.Player) {
+                console.warn('⚠️ YouTube API загружается медленно, создаю заглушку...');
+                tag.onerror(); // Вызываем обработчик ошибки
             }
-        }, 5000);
+        }, 3000);
     });
 }
 
@@ -1221,6 +1309,45 @@ const Player = {
             document.getElementById('empty-state').classList.add('hidden');
         }
     },
+    
+    createVKFallbackPlayer: (videoData) => {
+    console.log('🔄 Создаем VK видео плеер');
+    const playerContainer = document.getElementById('player-container');
+    
+    if (!playerContainer) return;
+    
+    playerContainer.innerHTML = `
+        <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;color:white;padding:20px;text-align:center;">
+            <div style="font-size:64px;margin-bottom:20px;">📱</div>
+            <h3 style="margin-bottom:10px;color:#0077FF;font-size:24px;">${videoData.title || 'VK видео'}</h3>
+            <p style="opacity:0.7;margin-bottom:30px;max-width:600px;">
+                VK видео загружено. Для совместного просмотра:<br>
+                1. Откройте видео по ссылке ниже<br>
+                2. Вернитесь в это окно<br>
+                3. Используйте кнопки управления для синхронизации
+            </p>
+            
+            <a href="${videoData.directUrl || `https://vk.com/video${videoData.id}`}" 
+               target="_blank" 
+               style="background:#0077FF;color:white;padding:15px 30px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:12px;font-size:18px;font-weight:600;margin-top:20px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93V15.07C2 20.67 3.33 22 8.93 22H15.07C20.67 22 22 20.67 22 15.07V8.93C22 3.33 20.67 2 15.07 2M18.15 16.27H16.69C16.14 16.27 15.97 15.82 15 14.83C14.12 14 13.74 13.88 13.53 13.88C13.24 13.88 13.15 13.96 13.15 14.38V15.69C13.15 16.04 13.04 16.26 12.11 16.26C10.57 16.26 8.86 15.32 7.66 13.59C5.85 11.05 5.36 9.13 5.36 8.75C5.36 8.54 5.43 8.34 5.85 8.34H7.32C7.69 8.34 7.83 8.5 7.97 8.9C8.69 10.96 10.38 13.09 11.53 13.09C11.8 13.09 11.87 13 11.87 12.66V10.84C11.87 9.5 12.01 9.41 12.41 9.41C12.71 9.41 13.18 9.53 14.54 10.94C16.01 12.57 16.3 13.08 17.08 13.08H18.56C19 13.08 19.13 13.35 18.96 13.69C18.68 14.22 17.64 15.26 16.64 16.04C16.24 16.35 15.98 16.5 15.89 16.66C15.79 16.83 15.86 17 16.12 17H18.15C18.56 17 18.7 17.18 18.7 17.41C18.7 17.76 18.3 18.31 17.63 18.95C16.8 19.74 16.19 20 15.87 20C15.62 20 15.5 19.88 15.5 19.52V18.77C15.5 17.82 15.38 17.73 14.64 17.18C13.75 16.5 12.61 15.47 11.2 13.93C9.92 12.55 9.22 11.76 8.95 11.38C8.68 11 8.76 10.8 8.95 10.56C9.06 10.43 9.27 10.2 9.46 10C10.67 8.74 11.5 7.71 12.08 6.92C12.46 6.41 12.86 6 13.45 6H14.93C15.23 6 15.36 6.16 15.45 6.45C15.55 6.79 16.06 7.87 16.63 8.92C17.14 9.84 17.55 10.42 17.73 10.42C17.86 10.42 17.93 10.32 17.93 10.05V8.93C17.93 8.5 18.05 8.34 18.44 8.34H19.93C20.28 8.34 20.41 8.55 20.28 8.9C20.07 9.42 19.03 10.67 17.63 12.04C16.99 12.65 16.57 13 16.45 13.15C16.33 13.3 16.37 13.42 16.54 13.42C17.21 13.42 18.53 12.38 19.63 11.21C20.36 10.42 21.03 9.66 21.07 9.41C21.11 9.16 20.99 9 20.64 9H19.17C18.81 9 18.69 9.11 18.57 9.38C18.43 9.68 17.77 10.65 16.93 11.58C16.36 12.21 16.06 12.42 15.98 12.42C15.86 12.42 15.79 12.33 15.79 11.95V11.25C15.79 9.85 16.32 9.72 16.53 9.72C16.68 9.72 16.9 9.79 17.32 10.19C17.77 10.61 19.08 12.11 20.26 13.53C21.14 14.56 21.8 15.36 21.86 15.57C21.93 15.84 21.8 16 21.43 16H19.93Z"/>
+                </svg>
+                Открыть VK видео
+            </a>
+            
+            <div style="margin-top:40px;font-size:14px;opacity:0.5;max-width:500px;">
+                <p><strong>Инструкция:</strong><br>
+                • Нажмите кнопку выше чтобы открыть видео в VK<br>
+                • Вернитесь в это окно<br>
+                • Используйте кнопки "▶️ Воспроизвести" и "⏸️ Пауза" для синхронизации с друзьями</p>
+            </div>
+        </div>
+    `;
+    
+    playerContainer.classList.remove('hidden');
+    document.getElementById('empty-state').classList.add('hidden');
+}
 
     createPlayer: () => {
     try {
@@ -1266,43 +1393,49 @@ const Player = {
     },
 
     onStateChange: (event) => {
-        const currentTime = ytPlayer.getCurrentTime();
-        const now = Date.now();
-        
-        if (now - lastPlaybackUpdate > 500) {
-            switch (event.data) {
-                case YT.PlayerState.PLAYING:
-                    if (State.isHost) {
-                        WSClient.updatePlayback({ playing: true, time: currentTime });
-                        lastPlaybackUpdate = now;
-                    }
-                    break;
-                case YT.PlayerState.PAUSED:
-                    if (State.isHost) {
-                        WSClient.updatePlayback({ playing: false, time: currentTime });
-                        lastPlaybackUpdate = now;
-                    }
-                    break;
-            }
-        }
-
+    // Проверяем что YT объект существует
+    if (!window.YT || !window.YT.PlayerState) {
+        console.warn('YT.PlayerState не определен');
+        return;
+    }
+    
+    const currentTime = ytPlayer ? ytPlayer.getCurrentTime() : 0;
+    const now = Date.now();
+    
+    if (now - lastPlaybackUpdate > 500) {
         switch (event.data) {
-            case YT.PlayerState.PLAYING:
-                Player.updatePlayBtn(true);
-                Player.startProgressLoop();
-                Player.showLoading(false);
+            case window.YT.PlayerState.PLAYING:
+                if (State.isHost) {
+                    WSClient.updatePlayback({ playing: true, time: currentTime });
+                    lastPlaybackUpdate = now;
+                }
                 break;
-            case YT.PlayerState.PAUSED:
-                Player.updatePlayBtn(false);
-                break;
-            case YT.PlayerState.BUFFERING:
-                Player.showLoading(true);
-                break;
-            case YT.PlayerState.ENDED:
-                Player.updatePlayBtn(false);
+            case window.YT.PlayerState.PAUSED:
+                if (State.isHost) {
+                    WSClient.updatePlayback({ playing: false, time: currentTime });
+                    lastPlaybackUpdate = now;
+                }
                 break;
         }
-    },
+    }
+
+    switch (event.data) {
+        case window.YT.PlayerState.PLAYING:
+            Player.updatePlayBtn(true);
+            Player.startProgressLoop();
+            Player.showLoading(false);
+            break;
+        case window.YT.PlayerState.PAUSED:
+            Player.updatePlayBtn(false);
+            break;
+        case window.YT.PlayerState.BUFFERING:
+            Player.showLoading(true);
+            break;
+        case window.YT.PlayerState.ENDED:
+            Player.updatePlayBtn(false);
+            break;
+    }
+},
 
     onError: (error) => {
         console.error('YouTube Player Error:', error);
@@ -1324,7 +1457,17 @@ const Player = {
     document.getElementById('empty-state').classList.add('hidden');
     document.getElementById('player-container').classList.remove('hidden');
 
-    // Если YouTube API доступен, используем его
+    // Проверяем тип видео
+    const isVKVideo = videoId.includes('_') && !videoId.includes('?');
+    
+    if (isVKVideo) {
+        // Для VK видео используем специальный обработчик
+        console.log('🔄 Это VK видео, используем fallback');
+        VideoLoader.loadVKVideo(State.video);
+        return;
+    }
+    
+    // Для YouTube видео
     if (window.YT && window.YT.Player && ytPlayer) {
         console.log('✅ Используем YouTube Player API');
         Player.showLoading(true);
@@ -1344,8 +1487,8 @@ const Player = {
             UI.toast('🎬 Видео загружено (режим совместимости)', 'info');
         }
     } else {
-        // Используем fallback
-        console.log('🔄 Используем fallback режим');
+        // Fallback для YouTube
+        console.log('🔄 Используем fallback режим для YouTube');
         Player.createFallbackPlayer();
         
         if (broadcast) {
@@ -1964,92 +2107,63 @@ const VideoLoader = {
     },
 
     parseVideoUrl: (url) => {
-        console.log('🔍 Парсим URL:', url);
-        
-        // YouTube парсинг - более надежный
-        const youtubeRegexes = [
-            /(?:youtube\.com\/watch\?v=)([^"&?\/\s]{11})/,
-            /(?:youtube\.com\/embed\/)([^"&?\/\s]{11})/,
-            /(?:youtu\.be\/)([^"&?\/\s]{11})/,
-            /(?:youtube\.com\/.*[?&]v=)([^"&?\/\s]{11})/
-        ];
-        
-        for (const regex of youtubeRegexes) {
-            const match = url.match(regex);
-            if (match && match[1]) {
-                console.log('✅ Найден YouTube ID:', match[1]);
-                return {
-                    id: match[1],
-                    title: 'YouTube видео',
-                    type: 'youtube'
-                };
-            }
-        }
-
-        // VK Video парсинг (старый и новый формат)
-        const vkRegex = /(?:vk\.com|vkvideo\.ru)\/video(-?\d+_\d+)/;
-        const vkMatch = url.match(vkRegex);
-        
-        if (vkMatch) {
-            console.log('✅ Найден VK ID:', vkMatch[1]);
+    console.log('🔍 Парсим URL:', url);
+    
+    // YouTube парсинг
+    const youtubeRegexes = [
+        /(?:youtube\.com\/watch\?v=)([^"&?\/\s]{11})/,
+        /(?:youtube\.com\/embed\/)([^"&?\/\s]{11})/,
+        /(?:youtu\.be\/)([^"&?\/\s]{11})/,
+        /(?:youtube\.com\/.*[?&]v=)([^"&?\/\s]{11})/
+    ];
+    
+    for (const regex of youtubeRegexes) {
+        const match = url.match(regex);
+        if (match && match[1]) {
+            console.log('✅ Найден YouTube ID:', match[1]);
             return {
-                id: vkMatch[1],
-                title: 'VK видео',
-                type: 'vk'
-            };
-        }
-
-        console.log('❌ Не распознан URL');
-        return null;
-    },
-
-    loadVKVideo: async (videoId) => {
-        try {
-            // Для VK Mini Apps используем VK Bridge
-            if (window.vkBridge) {
-                const response = await vkBridge.send('VKWebAppCallAPIMethod', {
-                    method: 'video.get',
-                    params: {
-                        videos: videoId,
-                        access_token: 'ТВОЙ_ТОКЕН',
-                        v: '5.131'
-                    }
-                });
-                
-                if (response.response && response.response.items[0]) {
-                    const video = response.response.items[0];
-                    return {
-                        id: video.player,
-                        title: video.title,
-                        type: 'vk'
-                    };
-                }
-            }
-            
-            // Fallback на YouTube
-            const demoVideos = {
-                '-205631275_456239152': 'jfKfPfyJRdk',
-                '-123456_789': 'dQw4w9WgXcQ',
-                '-987654_321': '5qap5aO4i9A'
-            };
-            
-            const youtubeId = demoVideos[videoId] || 'jfKfPfyJRdk';
-            return {
-                id: youtubeId,
-                title: 'VK видео',
-                type: 'youtube'
-            };
-            
-        } catch (error) {
-            console.error('VK Video API error:', error);
-            return {
-                id: 'jfKfPfyJRdk',
-                title: 'VK видео (демо)',
+                id: match[1],
+                title: 'YouTube видео',
                 type: 'youtube'
             };
         }
     }
-};
+
+    // VK Video парсинг (старый и новый формат)
+    const vkRegex = /(?:vk\.com|vkvideo\.ru)\/video(-?\d+_\d+)/;
+    const vkMatch = url.match(vkRegex);
+    
+    if (vkMatch) {
+        console.log('✅ Найден VK ID:', vkMatch[1]);
+        
+        // Для VK видео используем специальный обработчик
+        return {
+            id: vkMatch[1],
+            title: 'VK видео',
+            type: 'vk',
+            // Добавляем прямой URL для открытия
+            directUrl: `https://vk.com/video${vkMatch[1]}`
+        };
+    }
+
+    console.log('❌ Не распознан URL');
+    return null;
+},
+
+// Добавьте новый метод для загрузки VK видео
+loadVKVideo: async (videoData) => {
+    console.log('🎬 Загрузка VK видео:', videoData.id);
+    
+    // Для VK видео используем fallback с прямой ссылкой
+    Player.createVKFallbackPlayer(videoData);
+    
+    if (State.isHost) {
+        WSClient.changeVideo(videoData);
+        Chat.addSystemMessage(`🎬 ${State.user.name} включил VK видео`);
+    }
+    
+    UI.toast(`🎬 VK видео загружено`, 'info');
+}
 
 /* ==========================================================================
    UI UTILITIES
