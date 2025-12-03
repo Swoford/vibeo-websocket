@@ -193,6 +193,32 @@ const server = http.createServer(async (req, res) => {
         console.log(`✅ Healthcheck - ${Date.now() - startTime}ms`);
         return;
     }
+    // После healthcheck, добавьте:
+if (req.url === '/vk_check') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+        status: 'ok', 
+        message: 'VK Mini App работает',
+        timestamp: Date.now()
+    }));
+    return;
+}
+
+if (req.url === '/vk_config') {
+    res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({
+        app_id: process.env.VK_APP_ID || 'test_app',
+        app_name: 'Vibeo',
+        app_version: '1.0.0',
+        platform: 'web',
+        features: ['video', 'chat', 'rooms'],
+        supported_apis: ['VKWebAppInit', 'VKWebAppGetUserInfo']
+    }));
+    return;
+}
     
     // Проксирование YouTube API
     if (req.url === '/youtube-iframe-api' || 
