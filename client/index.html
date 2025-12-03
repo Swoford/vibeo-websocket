@@ -2097,88 +2097,7 @@ const VideoLoader = {
     
     UI.toast(`🎬 VK видео загружено`, 'info');
 }
-
-// ИНИЦИАЛИЗАЦИЯ ОБРАБОТЧИКОВ СОБЫТИЙ
-function initializeEventListeners() {
-    console.log('🔄 Инициализация обработчиков событий...');
-    
-    // Основные кнопки приложения
-    const joinButton = document.getElementById('join-room-btn');
-    if (joinButton) {
-        console.log('✅ Кнопка join-room-btn найдена');
-        joinButton.addEventListener('click', () => App.joinRoom());
-    } else {
-        console.error('❌ Кнопка join-room-btn не найдена!');
-    }
-    
-    document.getElementById('copy-room-code-btn')?.addEventListener('click', () => App.copyRoomCode());
-    document.getElementById('copy-invite-btn')?.addEventListener('click', () => App.copyRoomCode());
-    document.getElementById('leave-room-btn')?.addEventListener('click', () => App.leaveRoom());
-    document.getElementById('toggle-sidebar-btn')?.addEventListener('click', () => App.toggleSidebar());
-    document.getElementById('close-sidebar-btn')?.addEventListener('click', () => App.toggleSidebar());
-    document.getElementById('focus-search-btn')?.addEventListener('click', () => App.focusSearch());
-    
-    // Табы
-    document.getElementById('tab-chat-btn')?.addEventListener('click', () => App.switchTab('chat'));
-    document.getElementById('tab-search-btn')?.addEventListener('click', () => App.switchTab('search'));
-    document.getElementById('tab-users-btn')?.addEventListener('click', () => App.switchTab('users'));
-    
-    // Кнопки плеера
-    document.getElementById('play-btn')?.addEventListener('click', () => Player.togglePlay());
-    document.getElementById('sync-btn')?.addEventListener('click', () => Player.requestSync());
-    document.getElementById('video-overlay')?.addEventListener('click', () => Player.togglePlay());
-    
-    // Ползунки
-    const seekSlider = document.getElementById('seek-slider');
-    if (seekSlider) {
-        seekSlider.addEventListener('input', (e) => Player.onSeekInput(e.target.value));
-        seekSlider.addEventListener('change', (e) => Player.onSeekChange(e.target.value));
-    }
-    
-    const volumeSlider = document.getElementById('volume-slider');
-    if (volumeSlider) {
-        volumeSlider.addEventListener('input', (e) => Player.setVolume(e.target.value));
-    }
-    
-    // Видео
-    document.getElementById('load-video-btn')?.addEventListener('click', () => VideoLoader.loadFromUrl());
-    document.getElementById('youtube-example-btn')?.addEventListener('click', () => VideoLoader.loadExample('youtube'));
-    document.getElementById('vk-example-btn')?.addEventListener('click', () => VideoLoader.loadExample('vk'));
-    
-    // Чат
-    const chatForm = document.getElementById('chat-form');
-    if (chatForm) {
-        chatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            Chat.sendMessage(e);
-        });
-    }
-    
-    // Добавляем обработчик Enter для полей ввода
-    const usernameInput = document.getElementById('username-input');
-    const roomCodeInput = document.getElementById('room-code-input');
-    
-    if (usernameInput) {
-        usernameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                App.joinRoom();
-            }
-        });
-    }
-    
-    if (roomCodeInput) {
-        roomCodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                App.joinRoom();
-            }
-        });
-    }
-    
-    console.log('✅ Все обработчики событий инициализированы');
-}
-
+        
 // УПРАВЛЕНИЕ КОНТРОЛЛАМИ ВИДЕО
 function resetControlsTimer() {
     clearTimeout(controlsTimeout);
@@ -2261,6 +2180,52 @@ window.addEventListener('message', function(event) {
             // event.data может содержать информацию о состоянии видео
         }
     }
+});
+// ✅ НОВЫЙ БЛОК - ДОБАВИТЬ В КОНЕЦ <script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM загружен, инициализируем...');
+    
+    // 1. Кнопка входа в комнату
+    const joinButton = document.getElementById('join-room-btn');
+    if (joinButton) {
+        joinButton.addEventListener('click', () => App.joinRoom());
+    }
+    
+    // 2. Копирование кода комнаты
+    document.getElementById('copy-room-code-btn')?.addEventListener('click', () => App.copyRoomCode());
+    document.getElementById('copy-invite-btn')?.addEventListener('click', () => App.copyRoomCode());
+    
+    // 3. Выход из комнаты
+    document.getElementById('leave-room-btn')?.addEventListener('click', () => App.leaveRoom());
+    
+    // 4. Боковая панель
+    document.getElementById('toggle-sidebar-btn')?.addEventListener('click', () => App.toggleSidebar());
+    document.getElementById('close-sidebar-btn')?.addEventListener('click', () => App.toggleSidebar());
+    
+    // 5. Поиск видео
+    document.getElementById('focus-search-btn')?.addEventListener('click', () => App.focusSearch());
+    
+    // 6. Вкладки
+    document.getElementById('tab-chat-btn')?.addEventListener('click', () => App.switchTab('chat'));
+    document.getElementById('tab-search-btn')?.addEventListener('click', () => App.switchTab('search'));
+    document.getElementById('tab-users-btn')?.addEventListener('click', () => App.switchTab('users'));
+    
+    // 7. Чат
+    document.getElementById('chat-form')?.addEventListener('submit', Chat.sendMessage);
+    
+    // 8. Загрузка видео
+    document.getElementById('load-video-btn')?.addEventListener('click', VideoLoader.loadVideoFromUrl);
+    document.getElementById('youtube-example-btn')?.addEventListener('click', () => VideoLoader.loadExampleVideo('youtube'));
+    document.getElementById('vk-example-btn')?.addEventListener('click', () => VideoLoader.loadExampleVideo('vk'));
+    
+    // 9. Контролы плеера
+    document.getElementById('play-btn')?.addEventListener('click', Player.togglePlay);
+    document.getElementById('sync-btn')?.addEventListener('click', Player.requestSync);
+    document.getElementById('seek-slider')?.addEventListener('input', (e) => Player.onSeekInput(e.target.value));
+    document.getElementById('seek-slider')?.addEventListener('change', (e) => Player.onSeekChange(e.target.value));
+    document.getElementById('volume-slider')?.addEventListener('input', (e) => Player.setVolume(e.target.value));
+    
+    console.log('✅ Все обработчики событий установлены');
 });
 </script>
 </body>
