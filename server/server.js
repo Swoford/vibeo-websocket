@@ -210,57 +210,101 @@ package.json
 const cache = new Map();
 
 // Проксирование YouTube API
-async function proxyYouTubeResource(reqUrl, res) {
-    console.log(`📡 Проксирование YouTube: ${reqUrl}`);
+if (req.url === '/youtube-iframe-api' || req.url === '/iframe_api') {
+    console.log(`[${requestId}] 📹 Проксирование YouTube iframe API...`);
     
-    const targetUrl = `https://www.youtube.com${reqUrl}`;
+    const youtubeUrl = 'https://www.youtube.com/iframe_api';
     
-    // Проверяем кэш
-    if (cache.has(targetUrl)) {
-        console.log('✅ Отдаю из кэша:', reqUrl);
-        const cached = cache.get(targetUrl);
-        res.writeHead(200, cached.headers);
-        res.end(cached.data);
-        return;
-    }
-    
-    return new Promise((resolve) => {
-        https.get(targetUrl, (youtubeRes) => {
-            const chunks = [];
+    https.get(youtubeUrl, (youtubeRes) => {
+        console.log(`[${requestId}] ✅ YouTube API получен, статус: ${youtubeRes.statusCode}`);
+        
+        let data = '';
+        youtubeRes.on('data', (chunk) => {
+            data += chunk;
+        });
+        
+        youtubeRes.on('end', () => {
+            console.log(`[${requestId}] ✅ YouTube API загружен, размер: ${data.length} байт`);
             
-            youtubeRes.on('data', (chunk) => {
-                chunks.push(chunk);
+            res.writeHead(200, {
+                'Content-Type': 'text/javascript; charset=utf-8',
+                'Cache-Control': 'public, max-age=86400',
+                'Content-Length': Buffer.byteLength(data, 'utf8')
             });
             
-            youtubeRes.on('end', () => {
-                const data = Buffer.concat(chunks);
-                
-                // Кэшируем только успешные ответы
-                if (youtubeRes.statusCode === 200) {
-                    cache.set(targetUrl, {
-                        data: data,
-                        headers: {
-                            'Content-Type': youtubeRes.headers['content-type'] || 'text/javascript',
-                            'Cache-Control': 'public, max-age=86400'
+            res.end(data);
+        });
+    }).on('error', (err) => {
+        console.error(`[${requestId}] ❌ Ошибка загрузки YouTube API:`, err.message);
+        
+        // Простая заглушка YouTube API
+        const fallbackApi = `
+            console.log('📹 Используется fallback YouTube API');
+            window.YT = window.YT || {};
+            window.YT.PlayerState = {
+                UNSTARTED: -1,
+                ENDED: 0,
+                PLAYING: 1,
+                PAUSED: 2,
+                BUFFERING: 3,
+                CUED: 5
+            };
+            
+            window.YT.Player = class MockPlayer {
+                constructor(elementId, options) {
+                    console.log('🎬 Mock YouTube Player создан для', elementId);
+                    this.videoId = options.videoId;
+                    this.events = options.events || {};
+                    
+                    setTimeout(() => {
+                        if (this.events.onReady) {
+                            this.events.onReady({ target: this });
                         }
-                    });
-                    console.log(`✅ Загружено и закэшировано: ${reqUrl}`);
+                    }, 100);
                 }
                 
-                res.writeHead(youtubeRes.statusCode, {
-                    'Content-Type': youtubeRes.headers['content-type'] || 'text/javascript',
-                    'Cache-Control': 'public, max-age=86400'
-                });
-                res.end(data);
-                resolve();
-            });
-        }).on('error', (err) => {
-            console.error(`❌ Ошибка проксирования ${reqUrl}:`, err.message);
-            res.writeHead(500);
-            res.end('Error loading YouTube resource');
-            resolve();
+                loadVideoById(videoId) {
+                    console.log('🎬 Mock: Загружаю видео', videoId);
+                    this.videoId = videoId;
+                    return this;
+                }
+                
+                playVideo() { 
+                    console.log('▶️ Mock: Воспроизведение');
+                    return this; 
+                }
+                
+                pauseVideo() { 
+                    console.log('⏸️ Mock: Пауза');
+                    return this; 
+                }
+                
+                seekTo(seconds) { 
+                    console.log('⏩ Mock: Перемотка к', seconds + 's');
+                    return this; 
+                }
+                
+                getCurrentTime() { return 0; }
+                getDuration() { return 100; }
+                getPlayerState() { return window.YT.PlayerState.PAUSED; }
+                setVolume(volume) { console.log('🔊 Mock: Громкость', volume + '%'); }
+            };
+            
+            // Вызываем callback если он определен
+            if (typeof window.onYouTubeIframeAPIReady === 'function') {
+                setTimeout(window.onYouTubeIframeAPIReady, 150);
+            }
+        `;
+        
+        res.writeHead(200, {
+            'Content-Type': 'text/javascript; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+            'Content-Length': Buffer.byteLength(fallbackApi, 'utf8')
         });
+        
+        res.end(fallbackApi);
     });
+    return;
 }
 
 // Создаем HTTP сервер
