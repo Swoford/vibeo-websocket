@@ -1615,13 +1615,20 @@ const Player = {
     },
 
     showLoading: (show) => {
-        const overlay = document.getElementById('loading-overlay');
-        if (show) {
-            overlay.classList.remove('hidden');
-        } else {
-            overlay.classList.add('hidden');
-        }
-    },
+    const overlay = document.getElementById('loading-overlay');
+    
+    // ДОБАВЬ ЭТУ ПРОВЕРКУ - если элемент не найден, выходим из функции
+    if (!overlay) {
+        console.log('⚠️ loading-overlay не найден в DOM');
+        return;
+    }
+    
+    if (show) {
+        overlay.classList.remove('hidden');
+    } else {
+        overlay.classList.add('hidden');
+    }
+},
 
     showControls: () => {
         const controls = document.getElementById('controls-bar');
