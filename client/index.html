@@ -473,6 +473,104 @@
             border-radius: 8px;
             margin: 10px 0;
         }
+
+        /* Стили для полноэкранного режима */
+        body:fullscreen {
+            background: #000;
+        }
+
+        body:-webkit-full-screen {
+            background: #000;
+        }
+
+        body:-moz-full-screen {
+            background: #000;
+        }
+
+        /* Бегущая строка для уведомлений */
+        .ticker-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            overflow: hidden;
+            display: none;
+        }
+
+        .ticker-content {
+            position: absolute;
+            white-space: nowrap;
+            will-change: transform;
+            animation: ticker 30s linear infinite;
+            color: white;
+            font-size: 14px;
+            line-height: 30px;
+            padding-left: 100%;
+        }
+
+        @keyframes ticker {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .ticker-item {
+            display: inline-block;
+            margin-right: 50px;
+            padding: 0 10px;
+        }
+
+        .ticker-item.system {
+            color: #10b981;
+        }
+
+        .ticker-item.chat {
+            color: #3b82f6;
+        }
+
+        /* Кнопка полноэкранного режима */
+        .fullscreen-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.05);
+        }
+
+        /* Показываем контролы в полноэкранном режиме */
+        .fullscreen .controls-visible {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        /* Loading overlay */
+        #loading-overlay {
+            display: none;
+        }
+
+        #loading-overlay.show {
+            display: flex;
+        }
     </style>
 
     <!-- VK Bridge -->
@@ -622,6 +720,11 @@ if (typeof vkBridge !== 'undefined') {
 <!-- Notifications -->
 <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
 
+<!-- Бегущая строка для уведомлений -->
+<div id="ticker-container" class="ticker-container">
+    <div id="ticker-content" class="ticker-content"></div>
+</div>
+
 <!-- VIEW: AUTH -->
 <section id="view-auth" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-purple-700">
     <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
@@ -689,6 +792,9 @@ if (typeof vkBridge !== 'undefined') {
                 <button id="toggle-sidebar-btn" class="md:hidden w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center touch-manipulation">
                     <i class="fa-solid fa-bars"></i>
                 </button>
+                <button id="fullscreen-btn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-all touch-manipulation" title="Полный экран">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
             </div>
         </div>
 
@@ -707,15 +813,17 @@ if (typeof vkBridge !== 'undefined') {
             </div>
 
             <!-- Video Container -->
-            <div id="player-container" class="absolute inset-0 w-full h-full hidden">
-                <div id="yt-player"></div>
+            <div id="player-container" class="absolute inset-0 w-full h-full">
+                <!-- YouTube Player -->
+                <div id="yt-player" style="width:100%;height:100%;"></div>
                 
                 <!-- VK Video Interface -->
-                <div id="vk-video-interface" class="absolute inset-0 flex items-center justify-center hidden">
+                <div id="vk-video-interface" class="absolute inset-0 w-full h-full flex items-center justify-center bg-black hidden">
                     <!-- Content will be injected here -->
                 </div>
                 
-                <div id="loading-overlay" class="absolute inset-0 bg-black/50 flex items-center justify-center hidden">
+                <!-- Loading Overlay -->
+                <div id="loading-overlay" class="absolute inset-0 bg-black/70 flex items-center justify-center hidden">
                     <div class="text-white text-center">
                         <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full loading-spinner mb-2 mx-auto"></div>
                         <p class="text-sm">Загрузка видео...</p>
@@ -906,6 +1014,8 @@ let progressInterval = null;
 let lastPlaybackUpdate = 0;
 let controlsTimeout;
 let ws = null;
+let isFullscreen = false;
+let tickerItems = [];
 
 // STATE MANAGEMENT
 const State = {
@@ -939,6 +1049,50 @@ const UI = {
     updateConnectionStatus: (status) => {
         const indicator = document.getElementById('connection-status');
         indicator.className = `connection-status w-2 h-2 rounded-full ${status}`;
+    },
+
+    // Добавляем сообщение в бегущую строку
+    addToTicker: (text, type = 'system') => {
+        const tickerContent = document.getElementById('ticker-content');
+        if (!tickerContent) return;
+        
+        const item = document.createElement('span');
+        item.className = `ticker-item ${type}`;
+        item.textContent = text;
+        
+        tickerContent.appendChild(item);
+        tickerItems.push(item);
+        
+        // Показываем бегущую строку только в полноэкранном режиме
+        if (isFullscreen) {
+            document.getElementById('ticker-container').style.display = 'block';
+        }
+        
+        // Ограничиваем количество элементов
+        if (tickerItems.length > 10) {
+            const oldItem = tickerItems.shift();
+            if (oldItem && oldItem.parentNode) {
+                oldItem.parentNode.removeChild(oldItem);
+            }
+        }
+        
+        // Перезапускаем анимацию
+        tickerContent.style.animation = 'none';
+        setTimeout(() => {
+            tickerContent.style.animation = 'ticker 30s linear infinite';
+        }, 10);
+    },
+
+    // Обновляем состояние бегущей строки
+    updateTickerVisibility: () => {
+        const tickerContainer = document.getElementById('ticker-container');
+        if (!tickerContainer) return;
+        
+        if (isFullscreen && tickerItems.length > 0) {
+            tickerContainer.style.display = 'block';
+        } else {
+            tickerContainer.style.display = 'none';
+        }
     }
 };
 
@@ -1250,6 +1404,62 @@ const App = {
     copyRoomCode: () => {
         navigator.clipboard.writeText(State.room);
         UI.toast('Код комнаты скопирован! Поделитесь с друзьями.', 'success');
+    },
+
+    // Функции полноэкранного режима
+    toggleFullscreen: () => {
+        const videoWrapper = document.getElementById('video-wrapper');
+        
+        if (!document.fullscreenElement) {
+            if (videoWrapper.requestFullscreen) {
+                videoWrapper.requestFullscreen();
+            } else if (videoWrapper.webkitRequestFullscreen) {
+                videoWrapper.webkitRequestFullscreen();
+            } else if (videoWrapper.msRequestFullscreen) {
+                videoWrapper.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+    },
+
+    // Обновление состояния полноэкранного режима
+    updateFullscreenState: () => {
+        isFullscreen = !!(document.fullscreenElement || 
+                         document.webkitFullscreenElement || 
+                         document.msFullscreenElement);
+        
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        if (fullscreenBtn) {
+            fullscreenBtn.innerHTML = isFullscreen ? 
+                '<i class="fa-solid fa-compress"></i>' : 
+                '<i class="fa-solid fa-expand"></i>';
+            fullscreenBtn.title = isFullscreen ? 'Выйти из полноэкранного режима' : 'Полный экран';
+        }
+        
+        // Обновляем видимость бегущей строки
+        UI.updateTickerVisibility();
+        
+        // Показываем/скрываем контролы
+        if (isFullscreen) {
+            Player.showControls();
+            clearTimeout(controlsTimeout);
+        }
+        
+        // Добавляем/убираем класс для стилей
+        if (isFullscreen) {
+            document.body.classList.add('fullscreen');
+        } else {
+            document.body.classList.remove('fullscreen');
+        }
+        
+        console.log('📺 Полноэкранный режим:', isFullscreen ? 'включен' : 'выключен');
     }
 };
 
@@ -1258,8 +1468,9 @@ const Player = {
     init: () => {
         console.log('🎬 Инициализация плеера...');
         
-        // Создаем fallback плеер для начала
-        Player.createFallbackPlayer();
+        // Прячем пустое состояние
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('player-container').classList.remove('hidden');
         
         // Позже попробуем создать настоящий плеер если API доступен
         setTimeout(() => {
@@ -1269,35 +1480,12 @@ const Player = {
                     Player.createPlayer();
                 } catch (error) {
                     console.error('❌ Ошибка создания плеера:', error);
-                    Player.createFallbackPlayer();
+                    Player.showFallbackPlayer();
                 }
+            } else {
+                Player.showFallbackPlayer();
             }
         }, 1000);
-    },
-
-    createFallbackPlayer: () => {
-        console.log('🔄 Создаем fallback плеер');
-        const playerContainer = document.getElementById('player-container');
-        if (playerContainer) {
-            playerContainer.innerHTML = `
-                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;">
-                    <div style="text-align:center;color:white;">
-                        <div style="font-size:48px;margin-bottom:20px;">🎬</div>
-                        <div>Видео: ${State.video ? State.video.title : 'Не выбрано'}</div>
-                        <div style="font-size:12px;margin-top:10px;opacity:0.7;">
-                            YouTube плеер недоступен<br>
-                            Используйте прямой переход: 
-                            <a href="https://youtube.com/watch?v=${State.video ? State.video.id : ''}" 
-                               target="_blank" style="color:#3b82f6;">
-                               Открыть в YouTube
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-            playerContainer.classList.remove('hidden');
-            document.getElementById('empty-state').classList.add('hidden');
-        }
     },
 
     createPlayer: () => {
@@ -1333,8 +1521,107 @@ const Player = {
             console.log('✅ YouTube плеер создан');
         } catch (error) {
             console.error('❌ Ошибка создания YouTube плеера:', error);
-            Player.createFallbackPlayer();
-            UI.toast('⚠️ Плеер в режиме совместимости', 'info');
+            Player.showFallbackPlayer();
+        }
+    },
+
+    showFallbackPlayer: () => {
+        console.log('🔄 Показываем fallback интерфейс');
+        const playerContainer = document.getElementById('player-container');
+        const ytPlayerElement = document.getElementById('yt-player');
+        
+        if (ytPlayerElement) {
+            ytPlayerElement.style.display = 'none';
+        }
+        
+        // Если есть VK видео, показываем его интерфейс
+        if (State.video && State.video.id.includes('_')) {
+            Player.showVKVideoInterface(State.video);
+        } else {
+            // Иначе показываем сообщение о выборе видео
+            document.getElementById('empty-state').classList.remove('hidden');
+        }
+    },
+
+    showVKVideoInterface: (videoData) => {
+        console.log('🎬 Показываем интерфейс для VK видео:', videoData.id);
+        
+        const vkInterface = document.getElementById('vk-video-interface');
+        const ytPlayerElement = document.getElementById('yt-player');
+        const emptyState = document.getElementById('empty-state');
+        
+        if (!vkInterface) return;
+        
+        // Скрываем YouTube плеер и пустое состояние
+        if (ytPlayerElement) ytPlayerElement.style.display = 'none';
+        if (emptyState) emptyState.classList.add('hidden');
+        
+        // Показываем контейнер плеера
+        document.getElementById('player-container').classList.remove('hidden');
+        
+        // Генерируем прямую ссылку на VK видео
+        const directUrl = `https://vk.com/video${videoData.id}`;
+        
+        // Создаем красивый интерфейс для VK видео
+        vkInterface.innerHTML = `
+            <div class="max-w-2xl w-full mx-4 p-8 text-center vk-video-interface">
+                <div class="mb-6 animate-bounce">
+                    <i class="fa-brands fa-vk text-[#0077FF] text-6xl"></i>
+                </div>
+                
+                <h2 class="text-2xl font-bold text-white mb-3">${videoData.title}</h2>
+                <p class="text-slate-300 mb-6">Видео загружено из VK</p>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <a href="${directUrl}" target="_blank" class="vk-btn flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i>
+                            Открыть в VK
+                        </a>
+                        
+                        <button onclick="Player.copyVKLink('${directUrl}')" class="copy-link-btn">
+                            <i class="fa-regular fa-copy"></i>
+                            Копировать ссылку
+                        </button>
+                    </div>
+                    
+                    <div class="sync-instruction text-left">
+                        <h4 class="font-medium text-white mb-2">📱 Как смотреть вместе:</h4>
+                        <ol class="text-sm text-slate-300 space-y-1">
+                            <li>1. Все участники открывают видео в VK</li>
+                            <li>2. Ведущий говорит "Старт" в чате</li>
+                            <li>3. Все одновременно нажимают "Воспроизведение"</li>
+                            <li>4. Для синхронизации используйте команды в чате</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-slate-500">
+                    <p>VK видео воспроизводится через официальное приложение VK</p>
+                    <p>Для синхронизации используйте команды: "старт", "пауза", "перемотка [секунды]"</p>
+                </div>
+            </div>
+        `;
+        
+        vkInterface.classList.remove('hidden');
+        
+        UI.toast(`🎬 VK видео "${videoData.title}" загружено. Откройте ссылку для просмотра.`, 'info');
+        
+        // Добавляем в бегущую строку
+        UI.addToTicker(`🎬 ${State.user.name}: ${videoData.title}`, 'system');
+    },
+
+    hideVKInterface: () => {
+        const vkInterface = document.getElementById('vk-video-interface');
+        const ytPlayerElement = document.getElementById('yt-player');
+        
+        if (vkInterface) {
+            vkInterface.classList.add('hidden');
+            vkInterface.innerHTML = '';
+        }
+        
+        if (ytPlayerElement) {
+            ytPlayerElement.style.display = 'block';
         }
     },
 
@@ -1342,6 +1629,7 @@ const Player = {
         console.log('Player ready');
         Player.showControls();
         Player.initVolume();
+        Player.showLoading(false);
     },
 
     onStateChange: (event) => {
@@ -1400,7 +1688,7 @@ const Player = {
             return;
         }
         
-        State.video = { id: videoId, title: title, originalId: videoId };
+        State.video = { id: videoId, title: title };
         
         console.log('🎬 Загружаем видео:', videoId, title);
         
@@ -1415,6 +1703,8 @@ const Player = {
             if (broadcast) {
                 WSClient.changeVideo(State.video);
                 Chat.addSystemMessage(`🎬 ${State.user.name} включил VK видео: ${title}`);
+                // Добавляем в бегущую строку
+                UI.addToTicker(`🎬 ${State.user.name}: ${title}`, 'system');
             }
             return;
         }
@@ -1422,6 +1712,7 @@ const Player = {
         if (window.YT && window.YT.Player && ytPlayer) {
             console.log('✅ Используем YouTube Player API');
             Player.showLoading(true);
+            Player.hideVKInterface();
 
             try {
                 ytPlayer.loadVideoById(videoId);
@@ -1429,91 +1720,26 @@ const Player = {
                 if (broadcast) {
                     WSClient.changeVideo(State.video);
                     Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${title}`);
+                    // Добавляем в бегущую строку
+                    UI.addToTicker(`🎬 ${State.user.name}: ${title}`, 'system');
                 }
 
                 UI.toast(`🎬 Видео "${title}" загружено`, 'success');
             } catch (error) {
                 console.error('Error loading video with YouTube API:', error);
-                Player.createFallbackPlayer();
-                UI.toast('🎬 Видео загружено (режим совместимости)', 'info');
+                Player.showFallbackPlayer();
             }
         } else {
             console.log('🔄 Используем fallback режим для YouTube');
-            Player.createFallbackPlayer();
+            Player.showFallbackPlayer();
             
             if (broadcast) {
                 WSClient.changeVideo(State.video);
                 Chat.addSystemMessage(`🎬 ${State.user.name} включил: ${title}`);
+                // Добавляем в бегущую строку
+                UI.addToTicker(`🎬 ${State.user.name}: ${title}`, 'system');
             }
-            
-            UI.toast(`🎬 Видео "${title}" загружено (совместимость)`, 'info');
         }
-    },
-
-    // НОВЫЙ МЕТОД: Интерфейс для VK видео
-    showVKVideoInterface: (videoData) => {
-        console.log('🎬 Показываем интерфейс для VK видео:', videoData.id);
-        
-        const playerContainer = document.getElementById('player-container');
-        const vkInterface = document.getElementById('vk-video-interface');
-        
-        if (!playerContainer || !vkInterface) return;
-        
-        // Скрываем YouTube плеер
-        const ytPlayerElement = document.getElementById('yt-player');
-        if (ytPlayerElement) {
-            ytPlayerElement.style.display = 'none';
-        }
-        
-        // Генерируем прямую ссылку на VK видео
-        const directUrl = `https://vk.com/video${videoData.id}`;
-        
-        // Создаем красивый интерфейс для VK видео
-        vkInterface.innerHTML = `
-            <div class="vk-video-interface max-w-2xl w-full mx-4 p-8 text-center">
-                <div class="mb-6 animate-bounce">
-                    <i class="fa-brands fa-vk text-[#0077FF] text-6xl"></i>
-                </div>
-                
-                <h2 class="text-2xl font-bold text-white mb-3">${videoData.title}</h2>
-                <p class="text-slate-300 mb-6">Видео загружено из VK</p>
-                
-                <div class="space-y-4 mb-8">
-                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                        <a href="${directUrl}" target="_blank" class="vk-btn flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-play"></i>
-                            Открыть в VK
-                        </a>
-                        
-                        <button onclick="Player.copyVKLink('${directUrl}')" class="copy-link-btn">
-                            <i class="fa-regular fa-copy"></i>
-                            Копировать ссылку
-                        </button>
-                    </div>
-                    
-                    <div class="sync-instruction text-left">
-                        <h4 class="font-medium text-white mb-2">📱 Как смотреть вместе:</h4>
-                        <ol class="text-sm text-slate-300 space-y-1">
-                            <li>1. Все участники открывают видео в VK</li>
-                            <li>2. Ведущий говорит "Старт" в чате</li>
-                            <li>3. Все одновременно нажимают "Воспроизведение"</li>
-                            <li>4. Для синхронизации используйте команды в чате</li>
-                        </ol>
-                    </div>
-                </div>
-                
-                <div class="text-xs text-slate-500">
-                    <p>VK видео воспроизводится через официальное приложение VK</p>
-                    <p>Для синхронизации используйте команды: "старт", "пауза", "перемотка [секунды]"</p>
-                </div>
-            </div>
-        `;
-        
-        vkInterface.classList.remove('hidden');
-        playerContainer.classList.remove('hidden');
-        document.getElementById('empty-state').classList.add('hidden');
-        
-        UI.toast(`🎬 VK видео "${videoData.title}" загружено. Откройте ссылку для просмотра.`, 'info');
     },
 
     // Метод для копирования ссылки на VK видео
@@ -1528,20 +1754,6 @@ const Player = {
             });
     },
 
-    hideVKInterface: () => {
-        const vkInterface = document.getElementById('vk-video-interface');
-        const ytPlayerElement = document.getElementById('yt-player');
-        
-        if (vkInterface) {
-            vkInterface.classList.add('hidden');
-            vkInterface.innerHTML = '';
-        }
-        
-        if (ytPlayerElement) {
-            ytPlayerElement.style.display = 'block';
-        }
-    },
-
     handleVideoChanged: (message) => {
         if (message.userId !== State.user.id) {
             const isVKVideo = message.video.id.includes('_') && !message.video.id.includes('?');
@@ -1551,6 +1763,9 @@ const Player = {
             } else {
                 Player.loadVideo(message.video.id, message.video.title, false);
             }
+            
+            // Добавляем в бегущую строку
+            UI.addToTicker(`🎬 ${message.userName}: ${message.video.title}`, 'system');
             
             setTimeout(() => {
                 const slider = document.getElementById('seek-slider');
@@ -1730,6 +1945,17 @@ const Player = {
         const controls = document.getElementById('controls-bar');
         controls.classList.remove('controls-hidden');
         controls.classList.add('controls-visible');
+        
+        // В полноэкранном режиме не скрываем контролы автоматически
+        if (!isFullscreen) {
+            clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => {
+                if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                    controls.classList.remove('controls-visible');
+                    controls.classList.add('controls-hidden');
+                }
+            }, 3000);
+        }
     },
 
     requestSync: () => {
@@ -1744,12 +1970,16 @@ const Users = {
         State.users = message.users;
         Users.render();
         Chat.addSystemMessage(`👋 ${message.user.name} присоединился`);
+        // Добавляем в бегущую строку
+        UI.addToTicker(`👋 ${message.user.name} присоединился`, 'system');
     },
 
     handleUserLeft: (message) => {
         State.users = message.users;
         Users.render();
         Chat.addSystemMessage(`🚪 ${message.userName} вышел`);
+        // Добавляем в бегущую строку
+        UI.addToTicker(`🚪 ${message.userName} вышел`, 'system');
     },
 
     handleHostChanged: (message) => {
@@ -1762,8 +1992,12 @@ const Users = {
         if (State.isHost) {
             Chat.addSystemMessage(`👑 Теперь вы создатель комнаты!`);
             UI.toast('👑 Вы стали создателем комнаты!', 'success');
+            // Добавляем в бегущую строку
+            UI.addToTicker(`👑 Теперь вы создатель комнаты!`, 'system');
         } else {
             Chat.addSystemMessage(`👑 ${message.newHostName} теперь создатель комнаты`);
+            // Добавляем в бегущую строку
+            UI.addToTicker(`👑 ${message.newHostName} теперь создатель комнаты`, 'system');
         }
     },
 
@@ -1883,6 +2117,11 @@ const Chat = {
         container.scrollTop = container.scrollHeight;
         
         Chat.attachReactionHandlers(div, message.message.id);
+        
+        // Добавляем сообщение в бегущую строку (если не свое и не системное)
+        if (!isMe && !message.message.isSystem) {
+            UI.addToTicker(`${message.message.author}: ${message.message.text}`, 'chat');
+        }
     },
 
     createMessageHTML: (message, isMe) => {
@@ -2070,6 +2309,9 @@ const Chat = {
         div.innerHTML = `<span class="text-[10px] text-slate-500 bg-slate-800/50 px-2 py-1 rounded-full">${text}</span>`;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
+        
+        // Добавляем в бегущую строку
+        UI.addToTicker(text, 'system');
     }
 };
 
@@ -2173,12 +2415,17 @@ const VideoLoader = {
 function resetControlsTimer() {
     clearTimeout(controlsTimeout);
     Player.showControls();
-    controlsTimeout = setTimeout(() => {
-        if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-            document.getElementById('controls-bar').classList.remove('controls-visible');
-            document.getElementById('controls-bar').classList.add('controls-hidden');
-        }
-    }, 3000);
+    
+    // В полноэкранном режиме не скрываем контролы
+    if (!isFullscreen) {
+        controlsTimeout = setTimeout(() => {
+            if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                const controls = document.getElementById('controls-bar');
+                controls.classList.remove('controls-visible');
+                controls.classList.add('controls-hidden');
+            }
+        }, 3000);
+    }
 }
 
 // Обработчики для показа контроллов
@@ -2200,6 +2447,12 @@ document.getElementById('video-wrapper')?.addEventListener('click', () => {
         document.getElementById('sidebar').classList.add('translate-x-full');
     }
 });
+
+// События полноэкранного режима
+document.addEventListener('fullscreenchange', App.updateFullscreenState);
+document.addEventListener('webkitfullscreenchange', App.updateFullscreenState);
+document.addEventListener('mozfullscreenchange', App.updateFullscreenState);
+document.addEventListener('MSFullscreenChange', App.updateFullscreenState);
 
 // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 // Глобальный callback для YouTube API
@@ -2262,6 +2515,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('seek-slider')?.addEventListener('input', (e) => Player.onSeekInput(e.target.value));
     document.getElementById('seek-slider')?.addEventListener('change', (e) => Player.onSeekChange(e.target.value));
     document.getElementById('volume-slider')?.addEventListener('input', (e) => Player.setVolume(e.target.value));
+    
+    // 10. Полноэкранный режим
+    document.getElementById('fullscreen-btn')?.addEventListener('click', () => App.toggleFullscreen());
     
     // Также инициализируем VK Bridge если доступен
     if (typeof vkBridge !== 'undefined') {
